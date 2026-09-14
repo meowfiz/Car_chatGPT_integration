@@ -23,11 +23,16 @@
   endpoint `POST /api/ask` w project_monitorze; OpenAI API nie wchodzi, bo subskrypcja Go i tak nie
   podłącza się do HA. Siri zostaje wyłącznie wyzwalaczem dwóch angielskich słów, a **polską mowę
   nagrywa skrót i przepisuje Whisper** — nie Siri i nie dyktowanie Apple.
-- Zmiana OpenSpec przepisana pod ten cel: 31 zadań, `validate --strict` zielony.
-- Nadal brak kodu — zgodnie z PDF nic nie powstaje przed zmierzeniem PoC.
+- Zmiana OpenSpec przepisana pod ten cel, a **most działa i jest zmierzony**: `poc/ask_server.py`
+  przyjmuje nagranie albo tekst, transkrybuje po polsku lokalnym Whisperem, pyta `claude -p` z
+  narzędziami tylko do odczytu i oddaje czysty tekst do przeczytania głosem. Pierwsze liczby:
+  transkrypcja 2,1 s przy ciepłym modelu, pełna pętla od 13,8 do 34,5 s, odpowiedzi merytorycznie
+  poprawne. **Wąskim gardłem jest Claude czytający pliki, nie głos** — próg 15 s jeszcze nietrafiony,
+  naprawa w zadaniu 2.7. Szczegóły i instrukcja skrótu na iPhonie: `notes/HANDOFF_most_pytan.md`.
+- Maszyna docelowa: **stale włączony pecet w pracy** w tailnecie; RPi z HA tego nie uciągnie.
 
-**Aktywne TODO:** `openspec/changes/poc-carplay-command/tasks.md` (1/31). Następne: 1.2–1.5 — Tailscale
-w aucie, maszyna na Whispera i `claude -p`, włączenie Siri po angielsku, wersja aplikacji HA.
+**Aktywne TODO:** `openspec/changes/poc-carplay-command/tasks.md` (6/32). Następne: 1.3 — uruchomić most
+na pececie w pracy; grupa 3 — zbudować skrót na iPhonie; 2.7 — skrócić czas odpowiedzi.
 
 ## Czym jest ten projekt
 
