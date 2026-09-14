@@ -1,0 +1,7 @@
+# artefakty pomiarowe i logi nie sa commitowane (ZASADY 2.5)
+project_files/run_files/
+__pycache__/
+*.pyc
+.env
+*.db
+.claude/settings.local.json
