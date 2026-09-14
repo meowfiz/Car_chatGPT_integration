@@ -1,13 +1,28 @@
 # START — Car_chatGPT_integration
 
-## Ostatnia sesja — 2026-09-14 (sesja 0: inicjalizacja)
+## Ostatnia sesja — 2026-09-14 (sesja 1: research + propozycja PoC)
 
-- Repo zainicjalizowane, paczka `project_integration` wgrana (ZASADY v1.4, hooki monitora, auto-sync),
-  repo dodane do monitora na HA (encja `sensor.pm_car_chatgpt_integration`, dashboard „Projekty").
-- Brak kodu i brak zmiany OpenSpec. **Pierwsza sesja robocza zaczyna od `openspec/changes/poc-carplay-command/`**
-  (patrz „Pierwsza sesja” niżej).
+- Research mechanizmów „głos w aucie → własny endpoint”, 23 źródła z datami:
+  `notes/research/2026-09-14-mechanizmy-carplay.md`. Dwa ustalenia zmieniają plan:
+  **(1) ChatGPT Voice nie obsługuje apps ani MCP** (MCP jest web-only i nie na planie Go), więc ChatGPT
+  w CarPlay nie może dziś wywołać niczego; **(2) Siri nie mówi po polsku**, więc polskie polecenie musi iść
+  przez dyktowanie iOS z locale `pl_PL`, a nie przez dialog z Siri.
+- Utworzona zmiana OpenSpec `poc-carplay-command` (proposal + design + spec + 19 zadań), `validate --strict`
+  zielony. Rekomendowana ścieżka PoC: „Hey Siri, Home” → skrót → `Dictate Text` (`pl_PL`) → App Intent HA
+  `Assist prompt` → scena w HA → `Speak Text` polskim głosem. Po angielsku tylko fraza budząca.
+- Próg zaliczenia zadeklarowany przed pomiarem: ≥ 7/10 udanych prób, mediana czasu do akcji ≤ 10 s,
+  ≥ 8/10 poprawnych transkrypcji polskich.
+- Drugi research (`notes/research/2026-09-14-chatgpt-jako-wyzwalacz.md`): pomysł „ChatGPT woła mój link,
+  tam leci zadanie do Claude'a, odpowiedź wraca pod linkiem" jest poprawny, ale **aplikacja ChatGPT
+  w trybie głosowym nie ma wspieranego sposobu wołania webhooków** i nikt tego nie opublikował jako
+  działającego. Rozmowa z ChatGPT z narzędziami jest dziś możliwa, gdy ChatGPT jest **modelem** w Assist
+  (OpenAI Conversation) — skrypty HA stają się wtedy narzędziami modelu, a jeden z nich jest mostem do
+  `claude -p`. Dosłowna wersja została eksperymentem E1 (zadania 4.3–4.4).
+- Nadal brak kodu — zgodnie z PDF nic nie powstaje przed zmierzeniem PoC; most do Claude'a w grupie 4 to
+  jednoplikowy endpoint do wyrzucenia, nie Command Center.
 
-**Aktywne TODO:** `openspec/changes/*/tasks.md` (jeszcze puste — pierwsza sesja tworzy zmianę).
+**Aktywne TODO:** `openspec/changes/poc-carplay-command/tasks.md` (0/25). Następne: 1.1–1.4 — środowisko
+iPhone'a i język Siri, scena testowa w repo `HA`, osiągalność HA z LTE, pipeline Assist po polsku.
 
 ## Czym jest ten projekt
 
