@@ -18,11 +18,16 @@
   działającego. Rozmowa z ChatGPT z narzędziami jest dziś możliwa, gdy ChatGPT jest **modelem** w Assist
   (OpenAI Conversation) — skrypty HA stają się wtedy narzędziami modelu, a jeden z nich jest mostem do
   `claude -p`. Dosłowna wersja została eksperymentem E1 (zadania 4.3–4.4).
-- Nadal brak kodu — zgodnie z PDF nic nie powstaje przed zmierzeniem PoC; most do Claude'a w grupie 4 to
-  jednoplikowy endpoint do wyrzucenia, nie Command Center.
+- **Przestawienie celu PoC (decyzja użytkownika 2026-09-14)**: chodzi o rozmowę z project_monitorem
+  („jakbym gadał w oknie Claude Code"), a nie o sterowanie domem. Mózgiem jest **Claude** przez nowy
+  endpoint `POST /api/ask` w project_monitorze; OpenAI API nie wchodzi, bo subskrypcja Go i tak nie
+  podłącza się do HA. Siri zostaje wyłącznie wyzwalaczem dwóch angielskich słów, a **polską mowę
+  nagrywa skrót i przepisuje Whisper** — nie Siri i nie dyktowanie Apple.
+- Zmiana OpenSpec przepisana pod ten cel: 31 zadań, `validate --strict` zielony.
+- Nadal brak kodu — zgodnie z PDF nic nie powstaje przed zmierzeniem PoC.
 
-**Aktywne TODO:** `openspec/changes/poc-carplay-command/tasks.md` (0/25). Następne: 1.1–1.4 — środowisko
-iPhone'a i język Siri, scena testowa w repo `HA`, osiągalność HA z LTE, pipeline Assist po polsku.
+**Aktywne TODO:** `openspec/changes/poc-carplay-command/tasks.md` (1/31). Następne: 1.2–1.5 — Tailscale
+w aucie, maszyna na Whispera i `claude -p`, włączenie Siri po angielsku, wersja aplikacji HA.
 
 ## Czym jest ten projekt
 

@@ -1,144 +1,122 @@
 ## Context
 
-Stan na 2026-09-14 (szczegóły i źródła: `notes/research/2026-09-14-mechanizmy-carplay.md`):
+Stan na 2026-09-14, po dwóch turach researchu (`notes/research/2026-09-14-mechanizmy-carplay.md`,
+`notes/research/2026-09-14-chatgpt-jako-wyzwalacz.md`) i po doprecyzowaniu celu przez użytkownika.
 
-- ChatGPT w CarPlay (iOS 26.4+, wszystkie plany) to izolowana aplikacja głosowa: bez wake worda, bez
-  dostępu do innych aplikacji; **tryb głosowy nie obsługuje apps**, MCP/Developer mode jest web-only
-  i nie obejmuje planu Go. Nie ma więc dziś „wyzwalacza” z ChatGPT Voice do własnego endpointu.
-- Siri działa hands-free w CarPlay i uruchamia skróty po nazwie. Aplikacja HA Companion wystawia App
-  Intents: `Assist prompt`, `Perform action`, `Activate scene`, `Run script`. Skrót może czytać wynik
-  przez `Speak Text`.
-- **Siri nie obsługuje polskiego** (2026-09-14; polskiego nie ma na liście języków Siri ani Apple
-  Intelligence). Rozmowa po polsku musi więc omijać Siri wszędzie poza frazą budzącą: dyktowanie iOS
-  obsługuje polski niezależnie od języka Siri, a akcja `Dictate Text` przyjmuje kod locale (`pl_PL`).
-  Polskie głosy systemowe (np. „Zosia”) są dostępne dla `Speak Text`.
-- HA Companion 26.4+ ma też Assist bezpośrednio w CarPlay, ale start wymaga dotknięcia.
-- Infrastruktura istnieje: HA OS na RPi 4 w tailnecie, aplikacja HA na iPhonie, repo `HA` z konfiguracją.
+Cel: w samochodzie zadać pytanie po polsku i dostać odpowiedź głosem — o stan dowolnego projektu,
+o repozytoria, o Home Assistanta. Mózgiem ma być Claude, bo ma dostęp do repozytoriów i jest opłacony.
 
-Ograniczenie użytkownika: plan ChatGPT Go (PDF, str. 2) oraz wymaganie rozmowy po polsku. Model iPhone'a
-i to, czy ma Apple Intelligence (warunek akcji „Use Model”), nieznane — do sprawdzenia w zadaniu 1.1.
+Twarde ograniczenia zastane:
+
+- Aplikacja ChatGPT w trybie głosowym nie ma wyjścia do własnego endpointu (apps i pluginy wyłączone,
+  własne GPT z Actions bez akcji). Nie może być mostem ani wyzwalaczem.
+- Subskrypcja ChatGPT Go nie daje dostępu do API; integracja OpenAI w HA to osobne, płatne konto.
+- Siri nie zna polskiego. Może natomiast uruchomić skrót po **angielskiej** nazwie i to jedyna rola,
+  jaką dostaje.
+- W CarPlay nie ma wake worda dla aplikacji innych niż Siri; aplikacje głosowe startują dotknięciem.
+- Repo `HA` ma zasadę „zero cloud dla głosu i automatyzacji": STT to Speech-to-Phrase ze **statycznym
+  słownikiem** (rozpoznaje tylko frazy z `sentences.yaml`), TTS to Piper, wake word openWakeWord.
+  Do swobodnych pytań ten potok się nie nadaje i nie należy go psuć.
+- Dopasowanie intencji w HA jest czułe na diakrytyki (pomiar w repo `HA` z 2026-09-14).
+- project_monitor już wystawia API z autoryzacją tokenem: stan wszystkich repozytoriów, zadania
+  i zdarzenia per repozytorium, strumień na żywo, publikowanie sensorów do HA.
 
 ## Goals / Non-Goals
 
 **Goals:**
-- Potwierdzić lub obalić, że **polskie** polecenie głosowe hands-free w jadącym aucie uruchamia akcję w HA
-  i wraca **polską** odpowiedzią głosową, z liczbami: udane/wszystkie, poprawność transkrypcji, czas do
-  akcji, czas do odpowiedzi.
-- Zrobić to bez kodu, w jednej sesji konfiguracji i jednej sesji pomiarowej w aucie.
-- Zostawić decyzję „czy i na jakim moście budować Command Center” opartą na pomiarze.
+- Zmierzyć, czy pytanie po polsku zadane w jadącym aucie wraca sensowną odpowiedzią głosową
+  z project_monitora, z liczbami: udane/wszystkie, poprawność transkrypcji, czas do odpowiedzi.
+- Zrobić to bez agenta chmurowego w HA i bez nowego abonamentu.
+- Zostawić decyzję o Command Center opartą na pomiarze.
 
 **Non-Goals:**
-- Command Center, MCP, integracje GitHub/Claude Code/komputery.
+- Utrzymywany Command Center, MCP, sterowanie GitHubem i uruchamianie zadań zapisujących.
 - Własna aplikacja iOS z entitlementem CarPlay.
-- Zmiana planu ChatGPT (research pokazał, że nie odblokowałaby trybu głosowego).
-- Rozmowa wieloturowa; PoC to jedno polecenie = jedno wywołanie.
+- Zastępowanie lokalnego potoku głosowego w HA.
+- Rozmowa wieloturowa; PoC to jedno pytanie i jedna odpowiedź.
 
 ## Decisions
 
-**D1. Most = Siri + Skróty, nie ChatGPT Voice.** Jedyna ścieżka, która dziś działa hands-free bez własnej
-aplikacji i bez planu wyżej. Alternatywy odrzucone: ChatGPT apps/MCP (nie działa w głosie, web-only),
-własna aplikacja CarPlay (tygodnie, recenzja Apple, i tak start dotknięciem), Assist w CarPlay przez
-dotknięcie (nie jest hands-free; zostaje jako fallback B).
+**D1. Siri jest wyłącznie wyzwalaczem, nie rozpoznaje mowy.** Słyszy dwa angielskie słowa („Hey Siri,
+Monitor"). Odrzucone: czekanie na polską Siri (nie istnieje, terminy spekulacyjne), zmiana języka
+systemu, rezygnacja z hands-free.
 
-**D2. Wejście do HA = App Intent `Assist prompt`, nie webhook.** Assist prompt daje rozumienie języka
-naturalnego po stronie HA i zwraca tekst odpowiedzi do przeczytania; webhook wymagałby sztywnego
-mapowania fraz w skrócie. Alternatywa `Activate scene` na stałe zostaje jako fallback A: rozdziela
-problem „czy Siri w ogóle uruchamia skrót i czyta odpowiedź w aucie” od problemu „czy Assist rozumie”.
+**D2. Rozpoznawanie polskiej mowy robi Whisper, nie Apple i nie Siri.** Skrót nagrywa dźwięk akcją
+`Record Audio` o **stałej długości** i wysyła plik do project_monitora; transkrypcja leci przez
+faster-whisper na komputerze w tailnecie, a przy jego braku przez API transkrypcji. To jest ten sam
+rodzaj modelu, dzięki któremu ChatGPT „perfekcyjnie zbiera polski głos" — tyle że wywołany samodzielnie.
+Wzorzec jest sprawdzony przez innych: publikowane skróty „nagraj i przepisz Whisperem" istnieją od lat.
+Odrzucone: `Dictate Text` jako warstwa główna (zachowanie akcji bywa niespójne zależnie od kontekstu
+uruchomienia) — zostaje jako wariant zapasowy A.
 
-**D3. Agent konwersacyjny Assist: wbudowany HA do kalibracji, OpenAI Conversation jako cel.** Wbudowany
-agent nie wymaga kluczy i wystarcza do sceny, więc służy do zmierzenia samej pętli. Docelowo rozmowa ma
-być z ChatGPT (decyzja użytkownika 2026-09-14, przyjęta jako pewnik), a **agent LLM w HA to jedyne
-miejsce, w którym da się to dziś zrobić z narzędziami**: skrypty HA są wystawiane agentowi jako tools,
-więc GPT słucha po polsku, wybiera narzędzie i wywołuje akcję. Mierzyć osobno, nie mieszać konfiguracji
-(reguła 6.2). Cena: to GPT przez API, płatne per token, bez pamięci i osobowości konta ChatGPT.
+**D3. Mózgiem jest Claude przez project_monitor, nie model w Home Assistancie.** `claude -p` na komputerze
+z dostępem do repozytoriów w trybie tylko do odczytu, wywoływany przez nowy endpoint obok istniejącego
+API monitora. Odrzucone: agent OpenAI Conversation w Assist — łamie zasadę offline repo `HA`, wymaga
+nowego płatnego konta i daje gorszy dostęp do repozytoriów niż Claude, który już tam sięga.
 
-**D6. Most do Claude'a jest narzędziem agenta, nie osobnym mostem głosowym.** `script.claude_task` →
-`rest_command` → mały endpoint uruchamiający `claude -p` i zwracający tekst; przy długim zadaniu endpoint
-odpowiada natychmiast „przyjąłem, wynik pod <link>”, a wynik dociera powiadomieniem HA. Odrzucone:
-liczenie na to, że ChatGPT sam otworzy link z wynikiem (patrz D7). Endpoint przyjmuje **polecenia
-z zamkniętej listy**, bo publiczny URL uruchamiający agenta na moim komputerze to zdalne wykonanie kodu,
-a treść wracająca z sieci jest wektorem pośredniego prompt injection.
+**D4. Home Assistant zostaje mikrofonem i głośnikiem, nie mózgiem.** Potok offline HA pozostaje
+nietknięty; scena testowa i jej alias idą przez `voice/voice_data.yaml` i generator, bo to jedyne źródło
+prawdy dla komend. Skrypty i scenę trzeba wyeksponować do Assist ręcznie.
 
-**D7. „ChatGPT sam woła mój URL” zostaje eksperymentem E1, nie fundamentem.** Kanał istnieje (agent
-`ChatGPT-User` pobiera stronę na prośbę użytkownika, robots.txt go nie wiąże), ale w trybie głosowym jest
-to jedyne wyjście na zewnątrz i jest niewspierane: GPT-Live nie obsługuje connected apps ani pluginów,
-a rozmowy z własnym GPT z Actions spadają do Advanced Voice bez akcji. Dodatkowo: tylko GET, sekret
-musiałby siedzieć w ścieżce, adres trzeba wypowiedzieć, brak potwierdzenia wykonania, odpowiedź wraca
-jako streszczenie modelu. Dlatego E1 jest półgodzinnym testem rozstrzygającym (zadania 4.3–4.4), a nie
-założeniem architektury.
+**D5. Odpowiedź czytana polskim głosem systemowym iOS** w akcji `Speak Text`. Piper z HA nie wchodzi
+w tę ścieżkę, bo dźwięk ma iść przez telefon do audio auta.
 
-**D4. Skrót „Home”: `Dictate Text` (`pl_PL`) → `Assist prompt` → `Speak Text` (głos polski).** Nazwa
-angielska i jednowyrazowa, bo Siri musi ją rozpoznać w swoim języku; jeden skrót obsługuje wszystkie
-polecenia. Odrzucone: `Ask for Input` (Siri zapyta i będzie słuchać po angielsku — polskie polecenie
-przepisze na bełkot); osobny skrót na każde polecenie (nie skaluje się, ale to jest dokładnie fallback A);
-zmiana języka Siri na polski (nie istnieje).
+**D6. Endpoint pytań jest tylko do odczytu i ma zamkniętą listę operacji.** Sekret w ścieżce, limit
+tempa, log każdego wywołania, brak uprawnień do zapisu i do `git push`. Publiczny adres uruchamiający
+agenta to zdalne wykonanie kodu, a treść wracająca z sieci to wektor pośredniego prompt injection.
 
-**D4a. Podział języków jest świadomy i mierzony osobno.** Po angielsku: dwa słowa frazy budzącej. Po
-polsku: polecenie (dyktowanie `pl_PL`), rozumienie (Assist w HA), odpowiedź (`Speak Text`, głos polski).
-Ponieważ warstwa rozpoznawania mowy jest teraz apple'owym dyktowaniem, a nie Siri, jakość transkrypcji
-w hałasie auta jest osobnym mierzonym wynikiem — fallback B (Assist w CarPlay, STT po stronie HA) służy
-jako punkt odniesienia dla tej samej wypowiedzi.
+**D7. „ChatGPT sam woła mój URL" zostaje eksperymentem E1.** Kanał istnieje (agent `ChatGPT-User` pobiera
+stronę na prośbę użytkownika), ale w trybie głosowym jest niewspierany. Test rozstrzyga, negatyw zamyka
+temat.
 
-**D5. Pomiar: stoper + logbook HA, nie „na oko”** (reguła 5.2). Czas do akcji = znacznik `last_changed`
-sceny w HA minus znacznik końca wypowiedzi (nagranie dyktafonem z timestampem albo drugi telefon ze
-stoperem). Czas do odpowiedzi = z tego samego nagrania. Zapis do tabeli od pierwszej próby.
-
-**D6. Prerejestracja progu zaliczenia przed jazdą** (reguła 3.3 w wersji dla pomiaru opisowego): PoC
-zaliczony przy ≥ 7/10 udanych i medianie czasu do akcji ≤ 10 s; poniżej — negatyw z przyczyną.
+**D8. Próg zaliczenia zadeklarowany przed pomiarem.** Ścieżka główna: ≥ 7/10 udanych prób, mediana czasu
+od końca wypowiedzi do początku odpowiedzi ≤ 15 s, ≥ 8/10 poprawnych transkrypcji. Próg czasu jest
+luźniejszy niż przy scenie, bo w pętli siedzi model czytający repozytoria.
 
 ## Przepływ
 
 ```
-kierowca ──"Hey Siri, Home"──▶ Siri (CarPlay, mikrofon auta)   [jedyny fragment po angielsku]
-                              │ uruchamia skrót "Home"
-                              ▼
-                     Skrót: Dictate Text (pl_PL) ◀── kierowca mówi PO POLSKU
-                              │ tekst polecenia (polski)
-                              ▼
-                     App Intent HA: Assist prompt (pipeline "poc", jezyk polski)
-                              │ HTTPS (Tailscale / zewnętrzny URL HA)
-                              ▼
-                     Home Assistant ── conversation.process ──▶ scene.turn_on
-                              │ tekst odpowiedzi (polski)        (logbook: t_akcja)
-                              ▼
-                     Skrót: Speak Text (głos polski) ──▶ głośniki auta (t_odpowiedz)
+kierowca ──"Hey Siri, Monitor"──▶ Siri (CarPlay)      [jedyne dwa slowa po angielsku]
+                                   │ uruchamia skrot
+                                   ▼
+                          Record Audio (stala dlugosc) ◀── pytanie PO POLSKU
+                                   │ plik audio
+                                   ▼
+                          project_monitor  POST /api/ask   [token + sekret, limit tempa, log]
+                                   │
+                                   ├── faster-whisper (komputer w tailnecie) ──▶ tekst PL
+                                   │
+                                   └── claude -p (tylko odczyt repozytoriow) ──▶ odpowiedz PL
+                                   │        zrodla: /api/state, tasks, events, notes, git
+                                   ▼
+                          Skrot: Speak Text (glos polski) ──▶ glosniki auta
 ```
 
-Fallback A: `Dictate Text` i `Assist prompt` zastąpione przez `Activate scene` + stały polski tekst
-(sprawdza pętlę bez rozpoznawania mowy).
-Fallback B: HA Companion → CarPlay → Quick Access → Assist (dotknięcie) → ten sam pipeline; w pełni po
-polsku, STT po stronie HA, ale bez hands-free.
+Wariant zapasowy A: `Dictate Text` z locale `pl_PL` zamiast nagrania (bez Whispera, szybciej, gorzej
+w hałasie). Wariant zapasowy B: dotknięcie Assist w aplikacji HA w CarPlay — w pełni po polsku, ale STT
+to Speech-to-Phrase, więc **tylko wcześniej zadeklarowane frazy**; służy jako punkt odniesienia, nie jako
+droga do swobodnych pytań.
 
 ## Risks / Trade-offs
 
-- [`Dictate Text` uruchomione przez Siri w CarPlay nie startuje, nie kończy się samo albo wymaga
-  dotknięcia „Gotowe”] → sprawdzić najpierw na postoju (zadanie 2.3); jeśli pada, PoC leci fallbackiem A,
-  a wynik jest zapisany jako ograniczenie mostu. To jest ryzyko nr 1.
-- [`Dictate Text` ignoruje parametr `pl_PL` na iOS 26 i dyktuje po angielsku] → potwierdzić na postoju
-  z tekstem wyświetlonym przed wysłaniem (`Show Result`); jeśli nie da się wymusić locale, alternatywa:
-  polska klawiatura jako domyślna dyktowania, a jeśli i to nie — ścieżka główna upada na rzecz fallbacku B.
-- [Transkrypcja polska psuje się w hałasie 70+ km/h] → mierzone osobno (kolumna „transkrypcja OK”);
-  fallback B na tej samej wypowiedzi daje porównanie ze STT Home Assistanta.
-- [HA nieosiągalny z auta: Tailscale na iPhonie nieaktywny lub URL zewnętrzny nie działa przez LTE] →
-  zadanie 1.3 sprawdza oba URL-e z LTE przed jazdą; zapisać, który użyto.
-- [Assist nie rozumie polskiego polecenia mimo poprawnej transkrypcji] → pipeline z językiem polskim;
-  alias sceny „scena testowa”; osobno zmierzyć agenta LLM (D3), który radzi sobie z polską odmianą lepiej
-  niż intencje wbudowane.
-- [Speak Text nie gra przez audio auta albo czyta polski tekst angielskim głosem] → wybrać głos polski
-  jawnie w akcji; znane problemy z wyjściem audio z wątku HA Community; zapisać jako wynik.
-- [Pomiar zaniżony/zawyżony przez ręczny stoper] → nagranie audio z timestampem + logbook HA; podać
-  niepewność ±1 s.
-- [Konfiguracja HA zostawia śmieci] → wszystko pod jedną nazwą `poc_carplay_*`, usuwalne jednym ruchem.
+- [`Record Audio` uruchomione przez Siri zawiesza się albo wymaga dotknięcia „Stop"] → udokumentowane
+  skargi; dlatego stała długość nagrania i test na postoju przed jazdą. Jeśli padnie, wchodzi wariant A.
+  To jest ryzyko nr 1.
+- [Stała długość nagrania ucina długie pytanie albo każe czekać po krótkim] → zmierzyć dwie długości
+  (np. 6 s i 10 s) i wybrać po wynikach, nie po wrażeniu.
+- [Transkrypcja polska psuje się w hałasie 70+ km/h] → osobna kolumna w tabeli prób; porównanie Whisper
+  kontra `Dictate Text` na tych samych nagraniach.
+- [Brak diakrytyków psuje dopasowanie intencji w HA] → dotyczy tylko poleceń do HA; pytania do monitora
+  idą do modelu, który odmiany wybacza.
+- [Komputer z Whisperem i Claude'em śpi] → PoC wymaga jednej maszyny wybudzonej; zapisać, której.
+- [Czas odpowiedzi rośnie przez model czytający repozytoria] → wariant „przyjąłem, wynik powiadomieniem"
+  mierzony osobno.
+- [Publiczny endpoint to zdalne wykonanie kodu] → D6; dodatkowo PoC może działać wyłącznie w tailnecie,
+  bo iPhone jest w tej samej sieci; publiczny adres potrzebny jest tylko dla E1.
 
 ## Open Questions
 
-- Model iPhone'a i iOS (≥ 26.4? Apple Intelligence?) — decyduje o fallbacku B i akcji „Use Model”.
-- Na jaki język ustawiona jest dziś Siri na tym iPhonie i czy „Hey Siri” jest włączone przy zablokowanym
-  ekranie oraz w CarPlay.
-- Czy `Dictate Text` na iOS 26 nadal przyjmuje kod locale jako wejście (źródło [S21] jest starsze).
-- Czy HA ma skonfigurowany TTS (Piper / cloud) — potrzebny tylko dla fallbacku B; ścieżka główna czyta
-  przez Siri.
-- Rozstrzygnięte 2026-09-14: agent OpenAI Conversation wchodzi do PoC (grupa zadań 4), bo rozmowa ma być
-  z ChatGPT. Do ustalenia zostaje klucz API i limit kosztu na miesiąc.
-- Gdzie stanie endpoint mostu do Claude'a: dodatek HA obok `project_monitor` czy kontener na komputerze
-  w tailnecie (ten drugi jest bliżej repozytoriów, ale musi być wybudzony).
+- Czy iPhone w aucie ma aktywny Tailscale — jeśli tak, endpoint nie musi być publiczny w ogóle.
+- Wersja aplikacji HA Companion (warunek wariantu B, wymaga 26.4+).
+- Która maszyna w tailnecie hostuje Whispera i `claude -p`, i czy ma być wybudzana automatycznie.
+- Jakie uprawnienia dostaje `claude -p`: same pliki repozytoriów czy też polecenia `git log`.
