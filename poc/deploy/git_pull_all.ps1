@@ -7,20 +7,16 @@ param([string]$EnvFile = (Join-Path $env:USERPROFILE ".claude\ask_bridge.env"))
 
 . "$PSScriptRoot\_common.ps1"
 
-$root = "D:\claude_projects"
-if (Test-Path $EnvFile) {
-    $cfg = Import-EnvFile -Path $EnvFile
-    if ($cfg.ContainsKey("ASK_ROOT") -and $cfg["ASK_ROOT"] -ne "") { $root = $cfg["ASK_ROOT"] }
-}
-if (-not (Test-Path $root)) {
-    Write-Log "git_pull.log" "ASK_ROOT $root does not exist"
+$cfg = @{}
+if (Test-Path $EnvFile) { $cfg = Import-EnvFile -Path $EnvFile }
+$repos = Get-RepoPaths $cfg
+if ($repos.Count -eq 0) {
+    Write-Log "git_pull.log" "no repositories found (set ASK_REPOS or ASK_ROOT in $EnvFile)"
     exit 1
 }
 
-foreach ($dir in (Get-ChildItem $root -Directory)) {
-    $repo = $dir.FullName
-    if (-not (Test-Path (Join-Path $repo ".git"))) { continue }
-    $name = $dir.Name
+foreach ($repo in $repos) {
+    $name = Split-Path $repo -Leaf
 
     $dirty = git -C $repo status --porcelain 2>$null
     if ($dirty) {

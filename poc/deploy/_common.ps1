@@ -56,6 +56,24 @@ function Resolve-Bind {
     return (Get-TailscaleIp4)
 }
 
+function Get-RepoPaths {
+    # Repositories live in different places on each machine: ASK_REPOS (explicit ';' list)
+    # wins, ASK_ROOT (scan one parent) is the fallback. Same rule as poc\ask_server.py.
+    param($Cfg)
+    $out = @()
+    if ($Cfg -and $Cfg.ContainsKey("ASK_REPOS") -and $Cfg["ASK_REPOS"] -ne "") {
+        $out = $Cfg["ASK_REPOS"].Split(";") | ForEach-Object { $_.Trim().Trim('"') } |
+               Where-Object { $_ -ne "" }
+    } else {
+        $root = "D:\claude_projects"
+        if ($Cfg -and $Cfg.ContainsKey("ASK_ROOT") -and $Cfg["ASK_ROOT"] -ne "") { $root = $Cfg["ASK_ROOT"] }
+        if (Test-Path $root) {
+            $out = Get-ChildItem $root -Directory | ForEach-Object { $_.FullName }
+        }
+    }
+    return @($out | Where-Object { Test-Path (Join-Path $_ ".git") })
+}
+
 function Write-Log {
     param([string]$Name, [string]$Message)
     if (-not (Test-Path $RunFiles)) { New-Item -ItemType Directory -Path $RunFiles -Force | Out-Null }

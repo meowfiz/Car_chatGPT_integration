@@ -14,6 +14,14 @@
   Scenariusz krok po kroku: `poc/deploy/README_PRACA.md`.
 - Na tej maszynie uruchomiony wyłącznie `00_check.ps1` (read-only, test poprawności skryptów).
   **Nic nie jest jeszcze wdrożone na pececie w pracy** — to zadania 1.6–1.9.
+- **Repozytoria nie muszą leżeć pod wspólnym katalogiem.** `ASK_REPOS` (jawna lista ścieżek, per
+  maszyna, z `find_repos.ps1`) albo skan `ASK_ROOT`; repozytoria spoza katalogu roboczego idą do
+  `claude -p` przez `--add-dir`.
+- **Most sprawdza świeżość przed każdą odpowiedzią**: `git pull --ff-only` we wszystkich repo
+  równolegle (brudne pomijane), a do promptu wchodzi blok `STAN DANYCH` ze sha i wiekiem commita.
+  Zmierzone: **pull czterech repozytoriów 1,95 s**, czyli mieści się w oknie transkrypcji (2,1 s).
+  Pierwsze testy w tym repo: `project_files/python/tests/test_ask_server.py` (7, sprawdzone mutacją).
+- Diagram działania (dwie maszyny + oś czasu pytania): https://claude.ai/artifact/MuSA9L3w7rJoWmndXJTuwD
 
 **Aktywne TODO:** `openspec/changes/poc-carplay-command/tasks.md` (6/36). Następne: 1.6–1.9 —
 wdrożenie w pracy wg `poc/deploy/README_PRACA.md`; potem 2.7 (skrócenie czasu odpowiedzi)

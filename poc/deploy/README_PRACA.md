@@ -50,7 +50,17 @@ copy .\bridge.env.example "$env:USERPROFILE\.claude\ask_bridge.env"
 notepad "$env:USERPROFILE\.claude\ask_bridge.env"
 ```
 
-Wypełnij `ASK_SECRET` (ten wygenerowany), sprawdź `ASK_ROOT`. Reszta ma sensowne domyślne.
+Wypełnij `ASK_SECRET` (ten wygenerowany). Potem **namierz repozytoria na tej maszynie** — nie muszą
+leżeć pod wspólnym katalogiem i na każdym komputerze leżą gdzie indziej:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .ind_repos.ps1 -Apply
+```
+
+Skrypt przeszukuje dyski, pokazuje każde znalezione repo z ostatnim commitem i wpisuje do pliku env
+linię `ASK_REPOS=<sciezka>;<sciezka>;...`. Bez `-Apply` tylko wypisuje ją do wklejenia. Gdy `ASK_REPOS`
+jest puste, most bierze wszystkie repozytoria bezpośrednio pod `ASK_ROOT` (tak działa maszyna domowa
+z `D:\claude_projects`). Reszta pól ma sensowne domyślne.
 `ASK_BIND` zostaw pustą — most sam weźmie adres Tailscale przy starcie, więc zmiana adresu
 niczego nie psuje. **Ten plik nigdy nie trafia do repo.**
 
@@ -138,6 +148,29 @@ http://<tailscale-ip-peceta>:8787/ask/<sekret>
 ```
 
 Reszta kroków skrótu jest w `notes/HANDOFF_most_pytan.md` i się nie zmienia.
+
+---
+
+## Skąd most wie, że odpowiada z aktualnego stanu
+
+Most nie czyta repozytoriów przez sieć — czyta **lokalne klony na tej maszynie**. Żeby odpowiedź nie
+była sprzed wczoraj, przy **każdym pytaniu**, zanim Claude cokolwiek przeczyta:
+
+1. dla każdego repo z `ASK_REPOS` leci `git pull --ff-only` (równolegle, wszystkie naraz);
+2. repo z brudnym drzewem jest **pomijane** — maszyna odpowiadająca jest czytelnikiem i niczego nie
+   rozwiązuje sama (ZASADY 2.3/2.7);
+3. do promptu wchodzi blok `STAN DANYCH` z jedną linią na repo: czy podciągnięte, jaki jest ostatni
+   commit i **ile ma godzin**;
+4. gdy repo się nie odświeżyło (brak sieci, rozjazd z remote), model ma polecenie powiedzieć wprost,
+   że odpowiada ze stanu sprzed podanego czasu.
+
+Koszt czasowy jest bliski zeru, bo pull idzie **równolegle z transkrypcją**: zmierzone 2026-09-15 na
+maszynie domowej — pull czterech repozytoriów **1,95 s**, transkrypcja piętnastu sekund nagrania 2,1 s.
+Widać to w polach `sync_ms` i `repos` w odpowiedzi JSON oraz w linii `sync` w `ask_server.log`.
+`ASK_SYNC=0` wyłącza sprawdzanie, `ASK_SYNC_TIMEOUT` ogranicza czekanie (domyślnie 8 s).
+
+Zadanie `gitpull` co godzinę zostaje jako drugi bezpiecznik — dzięki niemu pierwsze pytanie po nocy
+nie czeka na duży pull, a repo nieużywane w pytaniach też nie zostaje w tyle.
 
 ---
 

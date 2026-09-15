@@ -97,20 +97,25 @@ if (-not $credOk) { $problems += "claude code never logged in as this user - run
 
 Write-Host ""
 Write-Host "== repositories =="
-$root = $env:ASK_ROOT
-if (-not $root) { $root = "D:\claude_projects" }
-Write-Host (Line "ASK_ROOT" $root)
-if (Test-Path $root) {
-    Get-ChildItem $root -Directory | ForEach-Object {
-        $g = Join-Path $_.FullName ".git"
-        if (Test-Path $g) {
-            $head = (git -C $_.FullName log -1 --format="%h %cd" --date=short 2>$null)
-            Write-Host (Line $_.Name $head)
-        }
-    }
+$repoCfg = @{}
+if (Test-Path $DefaultEnvFile) { $repoCfg = Import-EnvFile $DefaultEnvFile }
+if ($repoCfg.ContainsKey("ASK_REPOS") -and $repoCfg["ASK_REPOS"] -ne "") {
+    Write-Host (Line "source" "ASK_REPOS (explicit list)")
 } else {
-    $problems += "ASK_ROOT $root does not exist - clone the repositories (see repos.txt)"
-    Write-Host "MISSING"
+    Write-Host (Line "source" "ASK_ROOT scan (set ASK_REPOS with find_repos.ps1)")
+}
+$repos = Get-RepoPaths $repoCfg
+if ($repos.Count -eq 0) {
+    $problems += "no repositories found - run find_repos.ps1, or clone them (see repos.txt)"
+    Write-Host "NONE"
+} else {
+    foreach ($r in $repos) {
+        $head = (git -C $r log -1 --format="%h %cd" --date=short 2>$null)
+        $dirty = (git -C $r status --porcelain 2>$null)
+        $mark = ""
+        if ($dirty) { $mark = "  [dirty - the bridge will NOT refresh it]" }
+        Write-Host (Line (Split-Path $r -Leaf) "$head  $r$mark")
+    }
 }
 
 Write-Host ""

@@ -32,6 +32,11 @@ SECRET = os.environ.get("ASK_SECRET", "zmien-mnie")
 BIND = os.environ.get("ASK_BIND", "100.95.41.116")
 PORT = int(os.environ.get("ASK_PORT", "8787"))
 ROOT = os.environ.get("ASK_ROOT", r"D:\claude_projects")
+# Repositories do NOT have to sit under one root, and they sit elsewhere on every machine.
+# ASK_REPOS is a ';' separated list of absolute paths; empty = every git repo directly under ROOT.
+REPOS_RAW = os.environ.get("ASK_REPOS", "")
+SYNC = os.environ.get("ASK_SYNC", "1") != "0"
+SYNC_TIMEOUT = float(os.environ.get("ASK_SYNC_TIMEOUT", "8"))
 MODEL = os.environ.get("ASK_MODEL", "sonnet")
 CLAUDE_TIMEOUT = int(os.environ.get("ASK_TIMEOUT", "120"))
 WHISPER_MODEL = os.environ.get("ASK_WHISPER", "small")
@@ -158,6 +163,103 @@ def transcribe(raw, suffix):
                 pass
 
 
+def repo_paths():
+    """Absolute paths of the repositories this machine answers about."""
+    out = []
+    if REPOS_RAW.strip():
+        out = [p.strip().strip('"') for p in REPOS_RAW.split(";") if p.strip()]
+    else:
+        try:
+            for name in sorted(os.listdir(ROOT)):
+                out.append(os.path.join(ROOT, name))
+        except OSError:
+            pass
+    return [p for p in out if os.path.isdir(os.path.join(p, ".git"))]
+
+
+REPOS = repo_paths()
+
+
+def git(args, cwd, timeout):
+    env = dict(os.environ)
+    env["GIT_TERMINAL_PROMPT"] = "0"     # never hang on a credential prompt, nobody is watching
+    return subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True,
+                          encoding="utf-8", errors="replace", timeout=timeout, env=env)
+
+
+def age_phrase(iso):
+    """'2026-09-15 11:02:03 +0200' -> 'X minut/godzin/dni temu' (spoken, so no exact stamps)."""
+    try:
+        when = datetime.strptime(iso.strip()[:19], "%Y-%m-%d %H:%M:%S")
+    except (ValueError, AttributeError):
+        return "nieznany czas"
+    minutes = max(0, int((datetime.now() - when).total_seconds() // 60))
+    if minutes < 60:
+        return "%d min temu" % minutes
+    if minutes < 60 * 48:
+        return "%d h temu" % (minutes // 60)
+    return "%d dni temu" % (minutes // 1440)
+
+
+def sync_repo(path, timeout):
+    """One repository: fast-forward to the remote if that is safe, then report what we have.
+
+    Never rebases, never pushes, never touches a dirty tree (ZASADY 2.3 / 2.7): the answering
+    machine is a reader. A repo it cannot reach still answers - from the local state, with the
+    age said out loud, which is the honest version of 'nie wiem, czy to aktualne'.
+    """
+    name = os.path.basename(path.rstrip("\\/"))
+    try:
+        before = git(["rev-parse", "--short", "HEAD"], path, 10).stdout.strip()
+        dirty = git(["status", "--porcelain"], path, 15).stdout.strip()
+        if dirty:
+            state = "lokalne zmiany, nie odswiezam"
+        else:
+            pull = git(["pull", "--ff-only"], path, timeout)
+            after = git(["rev-parse", "--short", "HEAD"], path, 10).stdout.strip()
+            if pull.returncode != 0:
+                state = "NIE odswiezone (brak polaczenia albo rozjazd z remote)"
+            elif before == after:
+                state = "bez zmian na remote"
+            else:
+                state = "podciagniete z remote"
+    except (subprocess.TimeoutExpired, OSError) as exc:
+        return "%s: NIE odswiezone (%s)" % (name, type(exc).__name__)
+    try:
+        head = git(["log", "-1", "--format=%h|%ci|%s"], path, 10).stdout.strip()
+        sha, when, subject = head.split("|", 2)
+        return "%s: %s, ostatni commit %s %s (%s)" % (name, state, sha, age_phrase(when),
+                                                      subject[:60])
+    except (subprocess.TimeoutExpired, OSError, ValueError):
+        return "%s: %s" % (name, state)
+
+
+def sync_all(timeout):
+    """Every repository in parallel - the wall clock is one pull, not their sum."""
+    if not SYNC or not REPOS:
+        return ["synchronizacja wylaczona"] if not SYNC else ["brak repozytoriow"]
+    results = [None] * len(REPOS)
+
+    def one(i, path):
+        results[i] = sync_repo(path, timeout)
+
+    threads = [threading.Thread(target=one, args=(i, p), daemon=True)
+               for i, p in enumerate(REPOS)]
+    for t in threads:
+        t.start()
+    for t in threads:
+        t.join(timeout=timeout + 5)
+    return [r for r in results if r] or ["nie udalo sie sprawdzic repozytoriow"]
+
+
+def context_block(lines):
+    return ("STAN DANYCH sprawdzony przed ta odpowiedzia (kazde repozytorium osobno):\n"
+            + "\n".join("- " + ln for ln in lines)
+            + "\nJesli repozytorium jest oznaczone jako NIE odswiezone, a pytanie go dotyczy, "
+              "powiedz w jednym zdaniu, ze odpowiadasz ze stanu sprzed podanego czasu.\n\n"
+              "PYTANIE: ")
+
+
 def ask_claude(question):
     cmd = [
         "claude", "-p", question,
@@ -167,7 +269,9 @@ def ask_claude(question):
         "--allowedTools", *READ_ONLY_ALLOW,
         "--disallowedTools", *READ_ONLY_DENY,
     ]
-    proc = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True,
+    for path in REPOS[1:]:
+        cmd += ["--add-dir", path]
+    proc = subprocess.run(cmd, cwd=(REPOS[0] if REPOS else ROOT), capture_output=True, text=True,
                           encoding="utf-8", errors="replace", timeout=CLAUDE_TIMEOUT,
                           shell=(os.name == "nt"))
     if proc.returncode != 0:
@@ -225,6 +329,13 @@ class Handler(BaseHTTPRequestHandler):
         raw = self.rfile.read(length)
         ctype = (self.headers.get("Content-Type") or "").lower()
 
+        # The pull runs while Whisper transcribes, so freshness costs no extra wall clock:
+        # transcription measured 2,1 s, a fetch of four repositories is under that.
+        sync_box = {}
+        sync_thread = threading.Thread(
+            target=lambda: sync_box.setdefault("lines", sync_all(SYNC_TIMEOUT)), daemon=True)
+        sync_thread.start()
+
         t_stt = 0.0
         try:
             if ctype.startswith("audio/") or ctype == "application/octet-stream":
@@ -245,8 +356,13 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         log("ask", "%s (stt %.1f s): %s" % (source, t_stt, question))
+        t0 = time.time()
+        sync_thread.join(timeout=SYNC_TIMEOUT + 5)
+        t_sync = time.time() - t0
+        sync_lines = sync_box.get("lines") or ["nie zdazylem sprawdzic stanu repozytoriow"]
+        log("sync", "czekalem %.1f s | %s" % (t_sync, " | ".join(sync_lines)))
         try:
-            answer = for_speech(ask_claude(question))
+            answer = for_speech(ask_claude(context_block(sync_lines) + question))
         except subprocess.TimeoutExpired:
             log("error", "timeout claude")
             self._send(504, "Zadanie trwa za dlugo, sprawdz pozniej.")
@@ -260,7 +376,8 @@ class Handler(BaseHTTPRequestHandler):
         log("answer", "%d ms: %s" % (ms, answer[:160]))
         if want_json:
             body = json.dumps({"q": question, "a": answer, "ms": ms,
-                               "stt_ms": int(t_stt * 1000)}, ensure_ascii=False)
+                               "stt_ms": int(t_stt * 1000), "sync_ms": int(t_sync * 1000),
+                               "repos": sync_lines}, ensure_ascii=False)
             self._send(200, body, "application/json; charset=utf-8")
         else:
             self._send(200, answer)
@@ -272,8 +389,12 @@ def main():
     if SECRET == "zmien-mnie":
         print("USTAW ASK_SECRET przed uruchomieniem")
         return 2
-    log("start", "http://%s:%d/ask/<secret> root=%s model=%s whisper=%s/%s"
-        % (BIND, PORT, ROOT, MODEL, WHISPER_MODEL, WHISPER_DEVICE))
+    log("start", "http://%s:%d/ask/<secret> model=%s whisper=%s/%s sync=%s"
+        % (BIND, PORT, MODEL, WHISPER_MODEL, WHISPER_DEVICE, SYNC))
+    if not REPOS:
+        log("start", "UWAGA: zero repozytoriow - ustaw ASK_REPOS albo ASK_ROOT")
+    for path in REPOS:
+        log("start", "repo %s" % path)
     ThreadingHTTPServer((BIND, PORT), Handler).serve_forever()
     return 0
 
