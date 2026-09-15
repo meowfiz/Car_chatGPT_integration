@@ -43,6 +43,15 @@ a transkrypcja Whisperem zajęłaby mu wielokrotność czasu nagrania.
 Maszyna z pokoju (`desktop-ffshioa`, `100.95.41.116`) nadaje się do testów na biurku, ale zasypia,
 więc do auta się nie nadaje.
 
+## Wdrożenie na pececie w pracy (24/7, ciemne monitory)
+
+Pełny scenariusz i narzędzia: **`poc/deploy/README_PRACA.md`** — diagnoza (`00_check.ps1`),
+zasilanie (`01_power.ps1`), trzy zadania Harmonogramu (`02_install_tasks.ps1`: most przy starcie
+systemu, watchdog co 5 min, `git pull --ff-only` co godzinę), skrót `Ctrl+Alt+Q` gaszący ekrany
+(`install_shortcut.ps1`), pomiar (`check_bridge.ps1`) i wycofanie (`99_uninstall.ps1`).
+Sekret i konfiguracja w `%USERPROFILE%\.claude\ask_bridge.env` (wzór: `poc/deploy/bridge.env.example`),
+nigdy w repo.
+
 ## Uruchomienie mostu
 
 ```powershell

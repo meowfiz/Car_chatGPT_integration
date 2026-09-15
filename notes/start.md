@@ -1,6 +1,25 @@
 # START — Car_chatGPT_integration
 
-## Ostatnia sesja — 2026-09-14 (sesja 1: research + propozycja PoC)
+## Ostatnia sesja — 2026-09-15 (sesja 2: host mostu i wdrożenie 24/7)
+
+- **Telefon (Xiaomi Mi 8) odrzucony jako host mostu** — `faster-whisper` nie ma kół na Android-arm64,
+  whisper.cpp na SD845 to szacunkowo 15–30 s na 15-sekundowe nagranie wobec **2,1 s zmierzonych** na
+  pececie, a Claude Code w Termuksie jest środowiskiem niewspieranym. Mi 8 zostaje dashboardem HA
+  i węzłem Tailscale. Host mostu bez zmian: **pecet w pracy**.
+- **Gotowy komplet wdrożeniowy `poc/deploy/`** (Windows Pro, lokalny admin): diagnoza `00_check.ps1`,
+  zasilanie `01_power.ps1` (monitory 5 min; sen, hibernacja i **unattended sleep** = nigdy), trzy
+  zadania Harmonogramu `02_install_tasks.ps1` (most przy starcie systemu na koncie użytkownika
+  z zapisanym hasłem, watchdog co 5 min z godzinnym testem głębokim, `git pull --ff-only` co godzinę),
+  skrót `Ctrl+Alt+Q` gaszący ekrany, pomiar `check_bridge.ps1`, wycofanie `99_uninstall.ps1`.
+  Scenariusz krok po kroku: `poc/deploy/README_PRACA.md`.
+- Na tej maszynie uruchomiony wyłącznie `00_check.ps1` (read-only, test poprawności skryptów).
+  **Nic nie jest jeszcze wdrożone na pececie w pracy** — to zadania 1.6–1.9.
+
+**Aktywne TODO:** `openspec/changes/poc-carplay-command/tasks.md` (6/36). Następne: 1.6–1.9 —
+wdrożenie w pracy wg `poc/deploy/README_PRACA.md`; potem 2.7 (skrócenie czasu odpowiedzi)
+i grupa 3 (skrót na iPhonie).
+
+## Sesja 2026-09-14 (sesja 1: research + propozycja PoC)
 
 - Research mechanizmów „głos w aucie → własny endpoint”, 23 źródła z datami:
   `notes/research/2026-09-14-mechanizmy-carplay.md`. Dwa ustalenia zmieniają plan:

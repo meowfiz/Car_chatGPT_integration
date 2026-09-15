@@ -1,21 +1,21 @@
 # OpenSpec task status (generated)
 
-Generated 2026-09-14 14:53. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-09-15 11:38. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 6/32 tasks complete across 1 changes.**
+**Overall: 6/36 tasks complete across 1 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 6/32 | 2026-09-14 |
+| [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 6/36 | 2026-09-15 |
 
 
 ---
 
 ## poc-carplay-command
 
-`6/32` tasks complete.
+`6/36` tasks complete.
 
 ### 1. Warunki wstępne
 
@@ -26,6 +26,10 @@ Generated 2026-09-14 14:53. Regenerate with `python notes/gen_openspec_status.py
 | [ ] | 1.3 Wybrać maszynę w tailnecie na transkrypcję i `claude -p`; potwierdzić, że nie usypia, i zapisać jej nazwę oraz adres |
 | [ ] | 1.4 Włączyć Siri z językiem angielskim i „Hey Siri" przy zablokowanym ekranie; potwierdzić, że w CarPlay reaguje |
 | [ ] | 1.5 Sprawdzić wersję aplikacji HA Companion (wariant B wymaga 26.4+) |
+| [ ] | 1.6 Pecet w pracy: uruchomić `poc/deploy/00_check.ps1` i zamknąć każde `TODO` (python, node, `claude` zalogowany, `faster-whisper` z `ctranslate2==4.5.0`, Tailscale, sklonowane repozytoria z `repos.txt`); zapisać wyjście skryptu w HANDOFF |
+| [ ] | 1.7 Zasilanie peceta w pracy: `poc/deploy/01_power.ps1` (monitory 5 min, sen / hibernacja / dysk nigdy, **unattended sleep 0**, hibernacja wyłączona); po 10 minutach ciemnego ekranu sprawdzić `powercfg /requests` i zapisać, że maszyna nie zasnęła |
+| [ ] | 1.8 Zadania `AskBridge\bridge\|watchdog\|gitpull` przez `poc/deploy/02_install_tasks.ps1` (z hasłem konta); test twardy: **restart peceta i odpowiedź z tailnetu bez logowania się na niego** |
+| [ ] | 1.9 Zmierzyć `poc/deploy/check_bridge.ps1` na pececie w pracy (czas `/health` w ms, pełna pętla w ms, 3 próby) i wpisać liczby do `notes/HANDOFF_most_pytan.md` obok pomiarów z `desktop-ffshioa` |
 
 ### 2. Backend pytań w project_monitorze
 
