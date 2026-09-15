@@ -1,0 +1,8 @@
+# Repositories the bridge answers about. Clone all of them into ASK_ROOT (default D:\claude_projects).
+#   cd D:\claude_projects
+#   for /f "usebackq tokens=*" %r in ("repos.txt") do git clone %r
+# or simply clone them one by one.
+https://github.com/meowfiz/Car_chatGPT_integration.git
+https://github.com/meowfiz/project_integration.git
+https://github.com/meowfiz/HA.git
+https://github.com/meowfiz/nihongo_no_sensei.git
