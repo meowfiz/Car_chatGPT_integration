@@ -121,6 +121,26 @@ mutacji, każda złapana, po przywróceniu 25/25:
 - Pomiar 5.2 puściłem w tle przez `| tail`, co zbuforowało całe wyjście — przez kilka minut nie
   było widać, czy liczy, czy zawisło. To jest ZASADA 4.6 (postęp) obejście własnym potokiem.
 
+## Luka w auto-syncu znaleziona przy okazji (do kanonu w `project_integration`)
+
+Regula 2.9 odpalila `auto_sync.py` w trakcie tego zadania i **wypchnela stan, ktory sie nie
+uruchamia**: `poc/ask_server.py` jest plikiem śledzonym, wiec jego modyfikacja poszła do commita,
+ale `poc/intent.py` i `poc/aliases.json` były **nowe**, a `poc/` nie ma na liście
+`ALLOWED_PREFIXES` — bramka G2 zostawiła je nietknięte i tylko wypisała w raporcie. Na pececie
+w pracy `git pull` co godzinę zabrałby wtedy `ask_server.py` importujący nieistniejący moduł
+i most przestałby odpowiadać — cicho, bo watchdog restartuje proces, a nie tłumaczy `ImportError`.
+
+**Naprawa tutaj:** `.claude/auto_sync.json` z `{"allow": ["poc/"]}` (mechanizm per-repo, ktory
+`auto_sync.py` już ma), potem `python monitor/auto_sync.py --strict` — `pushed`, `39593b8`,
+sprawdzone trzema sposobami z reguly 2.2 (`ahead` pusty, `HEAD == origin/main`, `ls-remote`),
+plus `git ls-tree origin/main -- poc` pokazuje komplet trzech plików.
+
+**Wniosek ogolniejszy** (dla kanonu paczki): asymetria „zmodyfikowany plik śledzony przechodzi,
+nowy plik obok niego nie" jest pułapką zawsze, nie tylko w tym repo — commit przechodzi bramki
+G1–G5 i mimo to zostawia drzewo, które się nie importuje. Wart rozważenia w `project_integration`:
+G2 powinna **zatrzymać** commit, gdy w tym samym katalogu, co zmieniony plik śledzony, leżą
+nieskomitowane pliki nieznane — zamiast commitować połowę i wypisać resztę w raporcie.
+
 ## Aktywne TODO / pending
 
 - `voice-intent` 5.5 (słabe aliasy + drugi, jawnie policzony pomiar), 5.6 (nagrać ≥ 10 prawdziwych
