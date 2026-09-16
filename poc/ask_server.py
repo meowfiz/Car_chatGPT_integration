@@ -28,6 +28,11 @@ import time
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
+try:                                    # imported as poc.ask_server (tests)
+    from poc import intent
+except ImportError:                     # run as a script: python poc/ask_server.py
+    import intent
+
 SECRET = os.environ.get("ASK_SECRET", "zmien-mnie")
 BIND = os.environ.get("ASK_BIND", "100.95.41.116")
 PORT = int(os.environ.get("ASK_PORT", "8787"))
@@ -179,6 +184,27 @@ def repo_paths():
 
 REPOS = repo_paths()
 
+try:
+    ALIASES = intent.load_aliases()
+except (OSError, ValueError):           # a broken table must not kill the bridge
+    ALIASES = {"repos": {}, "wszystkie": [], "min_ratio": 0.82}
+
+
+def repos_for(repo):
+    """Directories the model gets for this intent.
+
+    A recognised repository narrows the scope to one tree - the only measurable time win of the
+    intent layer (prerejestracja voice-intent 5.2). A name this machine does not have falls back
+    to everything, because answering from the wrong tree is worse than answering slowly.
+    """
+    if not repo or repo == "*" or not REPOS:
+        return REPOS, "*"
+    want = repo.strip().lower()
+    hit = [p for p in REPOS if os.path.basename(p.rstrip("\\/")).lower() == want]
+    if not hit:
+        return REPOS, "*"
+    return hit, repo
+
 
 def git(args, cwd, timeout):
     env = dict(os.environ)
@@ -260,18 +286,20 @@ def context_block(lines):
               "PYTANIE: ")
 
 
-def ask_claude(question):
+def ask_claude(question, dirs=None, extra_system=""):
+    dirs = REPOS if dirs is None else dirs
+    system = (SYSTEM + " " + extra_system).strip() if extra_system else SYSTEM
     cmd = [
         "claude", "-p", question,
         "--output-format", "text",
         "--model", MODEL,
-        "--append-system-prompt", SYSTEM,
+        "--append-system-prompt", system,
         "--allowedTools", *READ_ONLY_ALLOW,
         "--disallowedTools", *READ_ONLY_DENY,
     ]
-    for path in REPOS[1:]:
+    for path in dirs[1:]:
         cmd += ["--add-dir", path]
-    proc = subprocess.run(cmd, cwd=(REPOS[0] if REPOS else ROOT), capture_output=True, text=True,
+    proc = subprocess.run(cmd, cwd=(dirs[0] if dirs else ROOT), capture_output=True, text=True,
                           encoding="utf-8", errors="replace", timeout=CLAUDE_TIMEOUT,
                           shell=(os.name == "nt"))
     if proc.returncode != 0:
@@ -355,14 +383,34 @@ class Handler(BaseHTTPRequestHandler):
             self._send(400, "Nie zrozumialem pytania.")
             return
 
-        log("ask", "%s (stt %.1f s): %s" % (source, t_stt, question))
+        parsed = intent.parse(question, ALIASES)
+        log("ask", "%s (stt %.1f s) [%s %s/%s]: %s"
+            % (source, t_stt, parsed["intent"], parsed["repo"], parsed["repo_reason"], question))
+
+        # Recognised but not executed: every write needs the gates of ZASADY 2.7-2.9. HTTP 200
+        # on purpose - the Shortcut speaks the body, an error code would end in silence.
+        if parsed["intent"] != "ask":
+            said = intent.refusal(parsed["intent"])
+            log("refuse", "%s: %s" % (parsed["intent"], question[:120]))
+            if want_json:
+                self._send(200, json.dumps({"q": question, "a": said, "intent": parsed,
+                                            "ms": int((time.time() - started) * 1000)},
+                                           ensure_ascii=False),
+                           "application/json; charset=utf-8")
+            else:
+                self._send(200, said)
+            return
+
+        dirs, scope = repos_for(parsed["repo"])
         t0 = time.time()
         sync_thread.join(timeout=SYNC_TIMEOUT + 5)
         t_sync = time.time() - t0
         sync_lines = sync_box.get("lines") or ["nie zdazylem sprawdzic stanu repozytoriow"]
         log("sync", "czekalem %.1f s | %s" % (t_sync, " | ".join(sync_lines)))
+        scoped = dict(parsed, repo=scope)
         try:
-            answer = for_speech(ask_claude(context_block(sync_lines) + question))
+            answer = for_speech(ask_claude(context_block(sync_lines) + question, dirs,
+                                           intent.scope_instruction(scoped)))
         except subprocess.TimeoutExpired:
             log("error", "timeout claude")
             self._send(504, "Zadanie trwa za dlugo, sprawdz pozniej.")
@@ -373,11 +421,11 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         ms = int((time.time() - started) * 1000)
-        log("answer", "%d ms: %s" % (ms, answer[:160]))
+        log("answer", "%d ms [zakres %s]: %s" % (ms, scope, answer[:160]))
         if want_json:
             body = json.dumps({"q": question, "a": answer, "ms": ms,
                                "stt_ms": int(t_stt * 1000), "sync_ms": int(t_sync * 1000),
-                               "repos": sync_lines}, ensure_ascii=False)
+                               "repos": sync_lines, "intent": scoped}, ensure_ascii=False)
             self._send(200, body, "application/json; charset=utf-8")
         else:
             self._send(200, answer)
@@ -395,6 +443,9 @@ def main():
         log("start", "UWAGA: zero repozytoriow - ustaw ASK_REPOS albo ASK_ROOT")
     for path in REPOS:
         log("start", "repo %s" % path)
+    unknown = intent.unknown_aliases(ALIASES, intent.canonical_names())
+    if unknown:
+        log("start", "UWAGA: aliasy wskazuja na nieznane repozytoria: %s" % ", ".join(unknown))
     ThreadingHTTPServer((BIND, PORT), Handler).serve_forever()
     return 0
 

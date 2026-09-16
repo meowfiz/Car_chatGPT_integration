@@ -1,0 +1,56 @@
+{
+  "v": 1,
+  "_opis": "Wypowiedzi kierowcy do pomiaru trafnosci parsera (prerejestracja voice-intent 5.1). Pole 'zrodlo' jest obowiazkowe: 'log' = prawdziwa transkrypcja Whispera z project_files/run_files/ask_server.log, 'syntetyczna' = napisana przy biurku. Fixture napisany przy biurku jest LATWIEJSZY niz mowa w aucie - liczba z niego jest gornym ograniczeniem, nie wynikiem. Pole 'oczekiwane' to nazwa kanoniczna repo albo '*' (kierowca nie nazwal projektu albo poprosil o wszystkie).",
+  "wypowiedzi": [
+    {"tekst": "Ile zadań zostalo w projekcie Carcha gpt integration i co jest następne.", "oczekiwane": "Car_chatGPT_integration", "zrodlo": "log", "uwaga": "2026-09-14 12:41:23, stt 6,6 s"},
+    {"tekst": "Ile zadań zostalo w projekcie Carcha gpt integration i co jest następne.", "oczekiwane": "Car_chatGPT_integration", "zrodlo": "log", "uwaga": "2026-09-14 12:41:58, stt 2,1 s, ten sam tekst z drugiego przebiegu"},
+
+    {"tekst": "Co się dzieje w projekcie car chat gpt", "oczekiwane": "Car_chatGPT_integration", "zrodlo": "syntetyczna"},
+    {"tekst": "Jak stoi most głosowy", "oczekiwane": "Car_chatGPT_integration", "zrodlo": "syntetyczna"},
+    {"tekst": "Opowiedz o projekcie kar czat dżi pi ti w dwóch zdaniach", "oczekiwane": "Car_chatGPT_integration", "zrodlo": "syntetyczna", "uwaga": "nazwa przeliterowana po polsku"},
+    {"tekst": "Co nowego w integracji z chat gpt", "oczekiwane": "Car_chatGPT_integration", "zrodlo": "syntetyczna"},
+    {"tekst": "Ile zostało zadań w projekcie car", "oczekiwane": "Car_chatGPT_integration", "zrodlo": "syntetyczna"},
+
+    {"tekst": "Co słychać w project integration", "oczekiwane": "project_integration", "zrodlo": "syntetyczna"},
+    {"tekst": "Jak stoi monitor", "oczekiwane": "project_integration", "zrodlo": "syntetyczna"},
+    {"tekst": "Ile otwartych zadań ma projekt integration", "oczekiwane": "project_integration", "zrodlo": "syntetyczna"},
+    {"tekst": "Co się działo wczoraj w meta projekcie", "oczekiwane": "project_integration", "zrodlo": "syntetyczna"},
+    {"tekst": "Kiedy była ostatnia sesja w projekt monitorze", "oczekiwane": "project_integration", "zrodlo": "syntetyczna"},
+    {"tekst": "Czy projekt integracji projektów ma coś pilnego", "oczekiwane": "project_integration", "zrodlo": "syntetyczna"},
+
+    {"tekst": "Kiedy była ostatnia sesja w home assistant", "oczekiwane": "HA", "zrodlo": "syntetyczna"},
+    {"tekst": "Co nowego w hom asystencie", "oczekiwane": "HA", "zrodlo": "syntetyczna", "uwaga": "Whisper zwykle pisze fonetycznie"},
+    {"tekst": "Ile zadań zostało w ha", "oczekiwane": "HA", "zrodlo": "syntetyczna"},
+    {"tekst": "Co się zmieniło w automatyce domowej", "oczekiwane": "HA", "zrodlo": "syntetyczna"},
+    {"tekst": "Powiedz w jednym zdaniu co jest otwarte w home assistant", "oczekiwane": "HA", "zrodlo": "syntetyczna"},
+
+    {"tekst": "Co słychać w ribniksterze", "oczekiwane": "RibnXtr2026", "zrodlo": "syntetyczna"},
+    {"tekst": "Ile zadań zostało w rybniksterze", "oczekiwane": "RibnXtr2026", "zrodlo": "syntetyczna", "uwaga": "rybn- zamiast ribn-, typowa pomylka transkrypcji"},
+    {"tekst": "Jak stoi projekt jot ka", "oczekiwane": "RibnXtr2026", "zrodlo": "syntetyczna"},
+    {"tekst": "Co z publikacją", "oczekiwane": "RibnXtr2026", "zrodlo": "syntetyczna"},
+    {"tekst": "Podsumuj ribn ekstra w trzech zdaniach", "oczekiwane": "RibnXtr2026", "zrodlo": "syntetyczna"},
+    {"tekst": "Czy w projekcie jk coś się ruszyło", "oczekiwane": "RibnXtr2026", "zrodlo": "syntetyczna", "uwaga": "jk napisane literami, nie fonetycznie"},
+
+    {"tekst": "Co nowego w nihongo", "oczekiwane": "nihongo_no_sensei", "zrodlo": "syntetyczna"},
+    {"tekst": "Ile zadań ma nihongo no sensei", "oczekiwane": "nihongo_no_sensei", "zrodlo": "syntetyczna"},
+    {"tekst": "Jak idzie nauka japońskiego", "oczekiwane": "nihongo_no_sensei", "zrodlo": "syntetyczna"},
+    {"tekst": "Co się działo w projekcie japoński", "oczekiwane": "nihongo_no_sensei", "zrodlo": "syntetyczna"},
+    {"tekst": "Powiedz krótko co z senseiem", "oczekiwane": "nihongo_no_sensei", "zrodlo": "syntetyczna"},
+
+    {"tekst": "Co się dzieje we wszystkich projektach", "oczekiwane": "*", "zrodlo": "syntetyczna"},
+    {"tekst": "Podsumuj wszystkie repozytoria w dwóch zdaniach", "oczekiwane": "*", "zrodlo": "syntetyczna"},
+    {"tekst": "Który projekt ma najwięcej otwartych zadań", "oczekiwane": "*", "zrodlo": "syntetyczna", "uwaga": "pytanie porownawcze - zakres musi byc pelny"},
+    {"tekst": "Gdzie ostatnio coś się działo", "oczekiwane": "*", "zrodlo": "syntetyczna"},
+    {"tekst": "Co mam dzisiaj do zrobienia", "oczekiwane": "*", "zrodlo": "syntetyczna"},
+    {"tekst": "Ile zadań zostało w sumie", "oczekiwane": "*", "zrodlo": "syntetyczna"},
+    {"tekst": "Czy coś się nie posypało w nocy", "oczekiwane": "*", "zrodlo": "syntetyczna"},
+    {"tekst": "Jaki był ostatni commit", "oczekiwane": "*", "zrodlo": "syntetyczna"},
+    {"tekst": "Przypomnij mi na czym skończyłem", "oczekiwane": "*", "zrodlo": "syntetyczna"},
+    {"tekst": "Co jest teraz najważniejsze", "oczekiwane": "*", "zrodlo": "syntetyczna"},
+
+    {"tekst": "Jak się miewa pogoda w Toruniu", "oczekiwane": "*", "zrodlo": "syntetyczna", "uwaga": "pytanie spoza domeny - ma NIE trafic w zadne repo"},
+    {"tekst": "Włącz mi muzykę", "oczekiwane": "*", "zrodlo": "syntetyczna", "uwaga": "polecenie spoza domeny"},
+    {"tekst": "Ile mam kilometrów do domu", "oczekiwane": "*", "zrodlo": "syntetyczna", "uwaga": "slowo dom jest aliasem HA - falszywe trafienie tutaj byloby drogie"},
+    {"tekst": "Czy w domu jest zapalone światło", "oczekiwane": "HA", "zrodlo": "syntetyczna", "uwaga": "tu dom naprawde znaczy HA - ten wiersz i poprzedni mierza ten sam alias w obie strony"}
+  ]
+}
