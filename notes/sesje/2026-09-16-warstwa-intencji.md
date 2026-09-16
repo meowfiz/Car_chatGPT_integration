@@ -164,6 +164,31 @@ digest, to z wlasnym pomiarem i z **p90 jako statystyka**, nie mediana.
 bramka G2 zatrzymuje commit, gdy nowy plik zrodlowy zostaje poza nim w katalogu, do ktorego
 commitujemy zrodla — wprost z przypadku `poc/ask_server.py` bez `poc/intent.py` opisanego wyzej.
 
+## Zamkniecie dnia — przeliczenie po zmianach z innej sesji
+
+Pod koniec dnia w `poc/` wyladowaly trzy commity z sesji obok (`e9105de`, `f6a16bf`, `7e80857`):
+pytanie do `claude -p` idzie teraz **na stdin** (naprawa defektu cmd.exe opisanego w promptcie),
+worker Whispera pisze UTF-8 zamiast strony kodowej konsoli, a do `poc/aliases.json` doszlo
+**10 nowych aliasow** dla `nihongo_no_sensei` („nie hongo", „sensej", „slowka"...).
+
+Aliasy sa **wejsciem mojego pomiaru**, wiec liczba z 83,9% przestala dotyczyc tej konfiguracji
+(regula 6.2: liczba zmierzona na konfiguracji A nie jest liczba konfiguracji B). Przeliczylem:
+
+| | przed (aliases sha `20bed026`) | po (sha `6019ee96`) |
+|---|---|---|
+| trafnosc | 83,9% (26/31) | **83,9% (26/31)** |
+| falszywe trafienia | 2,3% (1/43) | **2,3% (1/43)** |
+
+Bez zmiany — nowe aliasy dotycza repo, ktore w fixture bylo juz trafiane w 5/5 przypadkach, wiec
+nie mialy czego poprawic. **To nie jest drugie porownanie w sensie reguly 5.4**: nie zmienialem
+progu ani nie wybieralem wariantu po wyniku, tylko odtworzylem te sama statystyke na nowym stanie
+plikow. Zadanie 5.5 (slabe aliasy `projekt car` i `kazdy projekt`) nadal otwarte i nadal wymaga
+najpierw nowych wypowiedzi w fixture.
+
+Sprawdzone po ich zmianach: **25 testow zielonych**, wpiecie warstwy intencji nietkniete
+(`intent.parse`, `repos_for`, `refusal`, `scope_instruction` na miejscu), sygnatura
+`ask_claude(question, dirs, extra_system)` zachowana.
+
 ## Aktywne TODO / pending
 
 - `voice-intent` 5.5 (słabe aliasy + drugi, jawnie policzony pomiar), 5.6 (nagrać ≥ 10 prawdziwych
