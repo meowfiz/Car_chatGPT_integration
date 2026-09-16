@@ -141,6 +141,29 @@ G1–G5 i mimo to zostawia drzewo, które się nie importuje. Wart rozważenia w
 G2 powinna **zatrzymać** commit, gdy w tym samym katalogu, co zmieniony plik śledzony, leżą
 nieskomitowane pliki nieznane — zamiast commitować połowę i wypisać resztę w raporcie.
 
+## Rdzen `ask_core` przyszedl w trakcie sesji (wiadomosc od `project-integration-34`)
+
+`monitor/ask_core.py` (306 linii) jest w repo; `ask-core-client` 1.1 zamkniete. Sygnatura
+`ask(paths, question, system=, model=, timeout=, context=, use_digest=False) -> (answer, error)`,
+nigdy nie rzuca; `refresh_repo` / `refresh_all` (nasz wklad) i `for_speech` na miejscu.
+
+Przy okazji: paczka pisala do drzewa w trakcie mojej pracy — lokalne `monitor/ask_core.py`
+i `ask_worker.py` byly zmienione, a `pull --ff-only` odmawial. Sprawdzilem **zawartosc**, nie
+zaufalem statusowi: oba pliki byly bajt w bajt identyczne z `origin/main` (SHA-256 po normalizacji
+konca linii), wiec `checkout --` niczego nie niszczyl. Po fast-forwardzie drzewo czyste, 25 testow
+zielonych.
+
+**Ich liczby dla digestu nie przenosza sie tutaj i tak je zapisalem** (`ask-core-client` 3.6):
+mediana 18,4 -> 12,3 s (-33,2%), ale inny prompt, inny model i inny zestaw repo. Wazniejsze od
+mediany jest dla nas to, czego digest u nich **nie** naprawil: **p90 spadlo tylko o 12%**
+(26,1 -> 22,9 s), a to wlasnie ogon decyduje o progu 15 s pelnej petli — digest przesuwa srodek
+rozkladu, nie najgorszy przypadek. Jedna para zwolnila u nich dwukrotnie. Jesli bedziemy wlaczac
+digest, to z wlasnym pomiarem i z **p90 jako statystyka**, nie mediana.
+
+**Znalezisko z tej sesji trafilo do kanonu reguł.** `ZASADY_PRACY.md` jest juz w wersji **1.7**:
+bramka G2 zatrzymuje commit, gdy nowy plik zrodlowy zostaje poza nim w katalogu, do ktorego
+commitujemy zrodla — wprost z przypadku `poc/ask_server.py` bez `poc/intent.py` opisanego wyzej.
+
 ## Aktywne TODO / pending
 
 - `voice-intent` 5.5 (słabe aliasy + drugi, jawnie policzony pomiar), 5.6 (nagrać ≥ 10 prawdziwych
