@@ -1,0 +1,55 @@
+{
+  "v": 1,
+  "_opis": "Spoken aliases of repositories. DATA, not code: a new project is one entry here. Keys MUST be canonical names from ~/.claude/monitor_repos.env. Write aliases the way they are SAID in the car, not the way the directory is spelled; Whisper garbles names, and the matcher is fuzzy.",
+  "min_ratio": 0.82,
+  "wszystkie": [
+    "wszystkie projekty",
+    "wszystkie repozytoria",
+    "wszystkie repo",
+    "kazdy projekt",
+    "w ogole wszedzie"
+  ],
+  "repos": {
+    "Car_chatGPT_integration": [
+      "car chat gpt",
+      "car czat gpt",
+      "carcha gpt",
+      "kar czat dzi pi ti",
+      "projekt car",
+      "most glosowy",
+      "integracja z chat gpt"
+    ],
+    "project_integration": [
+      "project integration",
+      "projekt integration",
+      "integracja projektow",
+      "monitor",
+      "project monitor",
+      "meta projekt"
+    ],
+    "HA": [
+      "ha",
+      "home assistant",
+      "hom asystent",
+      "dom",
+      "automatyka domowa"
+    ],
+    "RibnXtr2026": [
+      "ribnikster",
+      "rybnikster",
+      "ribn ekstra",
+      "ribniks",
+      "projekt jk",
+      "jot ka",
+      "ryby",
+      "publikacja"
+    ],
+    "nihongo_no_sensei": [
+      "nihongo",
+      "nihongo no sensei",
+      "japonski",
+      "nauka japonskiego",
+      "sensei"
+    ]
+  }
+}

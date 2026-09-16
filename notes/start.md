@@ -1,5 +1,33 @@
 # START — Car_chatGPT_integration
 
+## Ostatnia sesja — 2026-09-16 (sesja 3: warstwa intencji mostu głosowego)
+
+- **Most rozumie już nie tylko pytania, ale i zamiar.** Nowa zmiana OpenSpec `voice-intent`
+  (proposal + design + spec + 29 zadań, `validate --strict` zielony) i jej implementacja:
+  transkrypcja → struktura `{v, intent, repo, repo_reason, text, limit_zdan}` → dopiero potem model.
+  Zaimplementowany wyłącznie `intent: ask`; `note` i `queue` są rozpoznawane i **odrzucane zdaniem
+  po polsku z kodem 200** (skrót czyta treść — kod błędu skończyłby się ciszą).
+- **Nazwa projektu rozpoznawana z przekręconej mowy.** `poc/aliases.json` to **dane**, nie kod:
+  nowy projekt = jeden wpis. Dopasowanie po n-gramach słów przez `difflib`, próg z pliku danych,
+  nazwy kanoniczne z `~/.claude/monitor_repos.env` (bez drugiej listy repozytoriów).
+- **Zmierzone (prerejestracja 3.3 zapisana przed przebiegiem):** trafność rozpoznania repozytorium
+  **83,9%** (26/31 wypowiedzi z nazwanym projektem; hipoteza ≥ 80%), fałszywe trafienia **2,3%**
+  (1/43; warunek ≤ 10%). Próg `min_ratio` = 0,82 zadeklarowany z góry, jedno porównanie, nie
+  strojony po wyniku. **Wynik nie mówi nic o mowie w jadącym aucie** — 41 z 43 wypowiedzi napisano
+  przy biurku (zadanie 5.6: nagrać prawdziwe).
+- **Zawężenie zakresu do jednego repo NIE przyspiesza odpowiedzi** (prerejestracja 5.2, wynik
+  negatywny zgodnie z zadeklarowanym warunkiem): mediana 14,0 s wobec 14,2 s przy wszystkich repo,
+  n=5+5, różnica tonie w rozrzucie 11,8–25,2 s. Zawężenie zostaje jako ochrona przed odpowiedzią
+  z cudzego drzewa i **nie jest** opisywane jako przyspieszenie. Przy okazji: sam `claude -p` ma
+  medianę **14,1 s** — to liczba do zadania 2.7, i kolejne potwierdzenie, że wąskim gardłem jest
+  model czytający pliki, nie głos.
+- 10/10 wywołań w tym przebiegu zaczęło odpowiedź od nazwy repozytorium — decyzja „nazwij repo
+  zamiast pytać o potwierdzenie" działa w praktyce.
+- Testy: **25 zielonych**, sześć mutacji sprawdzonych i każda złapana.
+
+**Aktywne TODO:** `openspec/changes/voice-intent/tasks.md` (5.5, 5.6, 6.3) oraz bez zmian
+`poc-carplay-command` 1.6–1.9 i 2.7; `ask-core-client` czeka na `monitor/ask_core.py`.
+
 ## Ostatnia sesja — 2026-09-15 (sesja 2: host mostu i wdrożenie 24/7)
 
 - **Telefon (Xiaomi Mi 8) odrzucony jako host mostu** — `faster-whisper` nie ma kół na Android-arm64,

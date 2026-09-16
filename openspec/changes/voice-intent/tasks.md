@@ -32,7 +32,7 @@
 
 ## 5. Pomiar (PREREJESTRACJA przed przebiegiem, ZASADY 3.3)
 
-- [ ] 5.1 **PREREJESTRACJA — trafnosc rozpoznania repozytorium.**
+- [x] 5.1 **PREREJESTRACJA — trafnosc rozpoznania repozytorium.**
   *Hipoteza:* reguly + aliasy rozpoznaja wlasciwe repozytorium w **>= 80%** wypowiedzi, w ktorych
   projekt jest nazwany, przy odsetku falszywych trafien **<= 10%**.
   *Dane:* fixture `wypowiedzi.json`, **>= 40 wypowiedzi**, w tym >= 5 na kazde repo z mapy
@@ -51,15 +51,18 @@
   konczymy i nie szukamy trzeciej heurystyki.
   *Czego wynik NIE uprawnia:* niczego o mowie w jadacym aucie — fixture to tekst, nie nagrania;
   liczba z prawdziwych nagran moze byc tylko gorsza.
-- [ ] 5.2 **PREREJESTRACJA — czy zawezenie zakresu skraca odpowiedz.**
+- [x] 5.2 **PREREJESTRACJA — czy zawezenie zakresu skraca odpowiedz.**
   *Hipoteza:* przy rozpoznanym repozytorium mediana pelnej petli spada wobec zakresu „wszystkie".
   *Dane:* 10 pytan (5 par: to samo pytanie z zawezeniem i bez), ta sama maszyna, model bez zmian.
   *Jedna statystyka:* mediana czasu pelnej petli. *Liczba porownan:* 1.
   *Warunek NEGATYWU:* mediana nie spada albo rosnie -> zawezenie zostaje (mniejsza szansa na
   odpowiedz z cudzego repo), ale **nie wolno** go opisywac jako przyspieszenia.
   *Czego wynik NIE uprawnia:* zdania „zadanie 2.7 zrobione" — to osobny pomiar na innym zakresie.
-- [ ] 5.3 Przebieg 5.1 na fixturze i zapis liczb (trafienia, falszywe trafienia, rozbicie wg `zrodlo`)
-- [ ] 5.4 Przebieg 5.2 na tej maszynie i zapis liczb obok pomiarow z `notes/HANDOFF_most_pytan.md`
+- [x] 5.3 Przebieg 5.1 na fixturze i zapis liczb (trafienia, falszywe trafienia, rozbicie wg `zrodlo`)
+- [x] 5.4 Przebieg 5.2 na tej maszynie i zapis liczb obok pomiarow z `notes/HANDOFF_most_pytan.md`
+  **Wynik NEGATYWNY zgodnie z zadeklarowanym warunkiem**: mediana 14,0 s (zawezony) wobec 14,2 s
+  (wszystkie), n=5+5 — roznica tonie w rozrzucie 11,8–25,2 s. Zawezenie zostaje jako ochrona przed
+  odpowiedzia z cudzego drzewa i **nie jest** opisywane jako przyspieszenie.
 - [ ] 5.5 **Slabe aliasy zmierzone 2026-09-16, poprawka wymaga drugiego pomiaru.** Przebieg 5.3 pokazal
   dwa aliasy, ktore lapia zwykle polskie zdania: `projekt car` trafia w „ktory **projekt** ma najwiecej
   otwartych zadan" (jedyne falszywe trafienie), a `kazdy projekt` z listy `wszystkie` trafia w „**czy

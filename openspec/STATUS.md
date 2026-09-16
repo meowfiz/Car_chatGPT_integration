@@ -1,14 +1,14 @@
 # OpenSpec task status (generated)
 
-Generated 2026-09-16 17:05. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-09-16 17:07. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 28/80 tasks complete across 3 changes.**
+**Overall: 32/80 tasks complete across 3 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [voice-intent](changes/voice-intent/tasks.md) | 22/29 | 2026-09-16 |
+| [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-09-16 |
 | [ask-core-client](changes/ask-core-client/tasks.md) | 0/15 | 2026-09-16 |
 | [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 6/36 | 2026-09-15 |
 
@@ -17,7 +17,7 @@ Generated 2026-09-16 17:05. Regenerate with `python notes/gen_openspec_status.py
 
 ## voice-intent
 
-`22/29` tasks complete.
+`26/29` tasks complete.
 
 ### 1. Schemat i dane
 
@@ -63,10 +63,10 @@ Generated 2026-09-16 17:05. Regenerate with `python notes/gen_openspec_status.py
 
 | Done | Task |
 |---|---|
-| [ ] | 5.1 **PREREJESTRACJA — trafnosc rozpoznania repozytorium.** *Hipoteza:* reguly + aliasy rozpoznaja wlasciwe repozytorium w **>= 80%** wypowiedzi, w ktorych projekt jest nazwany, przy odsetku falszywych trafien **<= 10%**. *Dane:* fixture `wypowiedzi.json`, **>= 40 wypowiedzi**, w tym >= 5 na kazde repo z mapy maszyny i >= 8 bez nazwanego projektu; kazda wypowiedz ma pole `zrodlo`. *Wykluczenia:* wypowiedzi, w ktorych czlowiek sam nie potrafi wskazac projektu, sa oznaczone `oczekiwane: "*"`, a nie usuwane. *Definicja etykiety:* trafienie = `repo` rowne `oczekiwane`; falszywe trafienie = `repo` to konkretne repo, a `oczekiwane` bylo inne albo `*`; uczciwe `*` nie jest trafieniem ani falszem. *Jedna statystyka:* odsetek trafien; druga (falszywe trafienia) jest **warunkiem bezpieczenstwa**, nie druga hipoteza. *Liczba testowanych porownan:* **1** (jeden prog `min_ratio` = 0,82 zadeklarowany z gory). Strojenie progu po zobaczeniu wynikow = dopasowanie do fixture i musi zostac zapisane jako takie. *Konfuzje do zmierzenia:* udzial wypowiedzi `zrodlo: log` w zbiorze (fixture napisany przy biurku jest latwiejszy niz mowa w aucie) i dlugosc aliasu (aliasy jednoslowne falszuja latwiej). *Warunek NEGATYWU:* trafnosc < 70% albo falszywe trafienia > 10% -> `repo` zostaje na stale `*`, konczymy i nie szukamy trzeciej heurystyki. *Czego wynik NIE uprawnia:* niczego o mowie w jadacym aucie — fixture to tekst, nie nagrania; liczba z prawdziwych nagran moze byc tylko gorsza. |
-| [ ] | 5.2 **PREREJESTRACJA — czy zawezenie zakresu skraca odpowiedz.** *Hipoteza:* przy rozpoznanym repozytorium mediana pelnej petli spada wobec zakresu „wszystkie". *Dane:* 10 pytan (5 par: to samo pytanie z zawezeniem i bez), ta sama maszyna, model bez zmian. *Jedna statystyka:* mediana czasu pelnej petli. *Liczba porownan:* 1. *Warunek NEGATYWU:* mediana nie spada albo rosnie -> zawezenie zostaje (mniejsza szansa na odpowiedz z cudzego repo), ale **nie wolno** go opisywac jako przyspieszenia. *Czego wynik NIE uprawnia:* zdania „zadanie 2.7 zrobione" — to osobny pomiar na innym zakresie. |
-| [ ] | 5.3 Przebieg 5.1 na fixturze i zapis liczb (trafienia, falszywe trafienia, rozbicie wg `zrodlo`) |
-| [ ] | 5.4 Przebieg 5.2 na tej maszynie i zapis liczb obok pomiarow z `notes/HANDOFF_most_pytan.md` |
+| [x] | 5.1 **PREREJESTRACJA — trafnosc rozpoznania repozytorium.** *Hipoteza:* reguly + aliasy rozpoznaja wlasciwe repozytorium w **>= 80%** wypowiedzi, w ktorych projekt jest nazwany, przy odsetku falszywych trafien **<= 10%**. *Dane:* fixture `wypowiedzi.json`, **>= 40 wypowiedzi**, w tym >= 5 na kazde repo z mapy maszyny i >= 8 bez nazwanego projektu; kazda wypowiedz ma pole `zrodlo`. *Wykluczenia:* wypowiedzi, w ktorych czlowiek sam nie potrafi wskazac projektu, sa oznaczone `oczekiwane: "*"`, a nie usuwane. *Definicja etykiety:* trafienie = `repo` rowne `oczekiwane`; falszywe trafienie = `repo` to konkretne repo, a `oczekiwane` bylo inne albo `*`; uczciwe `*` nie jest trafieniem ani falszem. *Jedna statystyka:* odsetek trafien; druga (falszywe trafienia) jest **warunkiem bezpieczenstwa**, nie druga hipoteza. *Liczba testowanych porownan:* **1** (jeden prog `min_ratio` = 0,82 zadeklarowany z gory). Strojenie progu po zobaczeniu wynikow = dopasowanie do fixture i musi zostac zapisane jako takie. *Konfuzje do zmierzenia:* udzial wypowiedzi `zrodlo: log` w zbiorze (fixture napisany przy biurku jest latwiejszy niz mowa w aucie) i dlugosc aliasu (aliasy jednoslowne falszuja latwiej). *Warunek NEGATYWU:* trafnosc < 70% albo falszywe trafienia > 10% -> `repo` zostaje na stale `*`, konczymy i nie szukamy trzeciej heurystyki. *Czego wynik NIE uprawnia:* niczego o mowie w jadacym aucie — fixture to tekst, nie nagrania; liczba z prawdziwych nagran moze byc tylko gorsza. |
+| [x] | 5.2 **PREREJESTRACJA — czy zawezenie zakresu skraca odpowiedz.** *Hipoteza:* przy rozpoznanym repozytorium mediana pelnej petli spada wobec zakresu „wszystkie". *Dane:* 10 pytan (5 par: to samo pytanie z zawezeniem i bez), ta sama maszyna, model bez zmian. *Jedna statystyka:* mediana czasu pelnej petli. *Liczba porownan:* 1. *Warunek NEGATYWU:* mediana nie spada albo rosnie -> zawezenie zostaje (mniejsza szansa na odpowiedz z cudzego repo), ale **nie wolno** go opisywac jako przyspieszenia. *Czego wynik NIE uprawnia:* zdania „zadanie 2.7 zrobione" — to osobny pomiar na innym zakresie. |
+| [x] | 5.3 Przebieg 5.1 na fixturze i zapis liczb (trafienia, falszywe trafienia, rozbicie wg `zrodlo`) |
+| [x] | 5.4 Przebieg 5.2 na tej maszynie i zapis liczb obok pomiarow z `notes/HANDOFF_most_pytan.md` **Wynik NEGATYWNY zgodnie z zadeklarowanym warunkiem**: mediana 14,0 s (zawezony) wobec 14,2 s (wszystkie), n=5+5 — roznica tonie w rozrzucie 11,8–25,2 s. Zawezenie zostaje jako ochrona przed odpowiedzia z cudzego drzewa i **nie jest** opisywane jako przyspieszenie. |
 | [ ] | 5.5 **Slabe aliasy zmierzone 2026-09-16, poprawka wymaga drugiego pomiaru.** Przebieg 5.3 pokazal dwa aliasy, ktore lapia zwykle polskie zdania: `projekt car` trafia w „ktory **projekt** ma najwiecej otwartych zadan" (jedyne falszywe trafienie), a `kazdy projekt` z listy `wszystkie` trafia w „**czy projekt** integracji projektow ma cos pilnego". Usuniecie ich po zobaczeniu wynikow jest **strojeniem do fixture** (ZASADY 5.4) — dlatego: (1) najpierw dopisac >= 10 nowych wypowiedzi, ktore tego nie dotycza, (2) potem zmienic aliasy, (3) potem przemierzyc, i zapisac obie liczby obok siebie jako **drugie** porownanie, jawnie policzone |
 | [ ] | 5.6 Nagrac >= 10 prawdziwych wypowiedzi przez `/ask` i dopisac transkrypcje do fixture z `zrodlo: log`; powtorzyc 5.1 i porownac z wersja syntetyczna |
 

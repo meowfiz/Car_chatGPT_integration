@@ -73,7 +73,28 @@ Usunięcie ich teraz, po zobaczeniu wyników, byłoby strojeniem do fixture (ZAS
 5.5: najpierw dopisać ≥ 10 nowych wypowiedzi, potem zmienić aliasy, potem przemierzyć i zapisać
 obie liczby jako **drugie**, jawnie policzone porównanie.
 
-**PREREJESTRACJA 5.2 (czy zawężenie zakresu skraca odpowiedź).** WYNIK_5_2
+**PREREJESTRACJA 5.2 (czy zawężenie zakresu skraca odpowiedź).** Przebieg wykonany
+(5 pytań × 2 warianty, kolejność w parze naprzemienna, `ASK_SYNC=0`, ten sam model):
+
+| wariant | n | mediana | min | max |
+|---|---|---|---|---|
+| zawężony do jednego repo | 5 | **14,0 s** | 13,7 | 25,2 |
+| wszystkie repozytoria | 5 | **14,2 s** | 11,8 | 16,4 |
+
+**Zysku czasowego nie ma.** Różnica 0,2 s tonie w rozrzucie pojedynczych wywołań (11,8–25,2 s),
+a najdłuższe wywołanie (25,2 s) było pierwsze w przebiegu, czyli zimne. Zgodnie z warunkiem
+negatywu zapisanym **przed** przebiegiem: zawężenie zostaje (mniejsza szansa na odpowiedź
+z cudzego drzewa), ale **nie wolno go opisywać jako przyspieszenia** — i nie jest.
+Hipoteza „zawężenie skraca odpowiedź" jest **negatywna**, z przyczyną: model i tak czyta
+w danym repo tyle samo plików, a `--add-dir` nie kosztuje, dopóki nikt do tych katalogów
+nie zagląda.
+
+Dwie rzeczy przy okazji, obie z tego samego przebiegu:
+- **10/10 wywołań zakończyło się odpowiedzią i każda zaczęła się od nazwy repozytorium** — decyzja
+  „nazwij repo zamiast pytać o potwierdzenie" działa w praktyce, nie tylko w prompcie.
+- Sam `claude -p` bez głosu: mediana **14,1 s**, zakres 11,8–31,2 s. To jest liczba do zadania 2.7
+  (`poc-carplay-command`) i potwierdza wcześniejszy wniosek: **wąskim gardłem jest model czytający
+  pliki, nie transkrypcja** (2,1 s) i nie synchronizacja repo (1,95 s).
 
 ## Testy
 
@@ -102,8 +123,8 @@ mutacji, każda złapana, po przywróceniu 25/25:
 
 ## Aktywne TODO / pending
 
-- `voice-intent` 5.4 (przebieg pomiaru czasu), 5.5 (słabe aliasy + drugi pomiar), 5.6 (prawdziwe
-  nagrania do fixture), 6.3 (akapit w `HANDOFF_most_pytan.md`).
+- `voice-intent` 5.5 (słabe aliasy + drugi, jawnie policzony pomiar), 5.6 (nagrać ≥ 10 prawdziwych
+  wypowiedzi i powtórzyć 5.1), 6.3 (akapit w `HANDOFF_most_pytan.md` o dodawaniu projektu).
 - Bez zmian: `poc-carplay-command` 1.6–1.9 (wdrożenie na pececie w pracy), 2.7 (czas odpowiedzi);
   `ask-core-client` czeka na `monitor/ask_core.py` z `project_integration`.
 

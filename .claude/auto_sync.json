@@ -1,0 +1,4 @@
+{
+  "_why": "poc/ holds the bridge itself (ask_server.py, intent.py, aliases.json), not measurement artifacts. Without this, auto-sync commits a MODIFIED tracked poc/ file but leaves a NEW one untracked - on 2026-09-16 that pushed an ask_server.py importing poc/intent.py that was not in the repo, which would break the work PC on its hourly git pull.",
+  "allow": ["poc/"]
+}
