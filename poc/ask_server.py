@@ -289,18 +289,21 @@ def context_block(lines):
 def ask_claude(question, dirs=None, extra_system=""):
     dirs = REPOS if dirs is None else dirs
     system = (SYSTEM + " " + extra_system).strip() if extra_system else SYSTEM
+    # The question goes on stdin, never into argv: on Windows `claude` is claude.CMD and cmd.exe
+    # truncates an argument at the first newline, so a question with the freshness report in front
+    # of it arrived as the report header alone (measured 2026-09-16, two runs).
     cmd = [
-        "claude", "-p", question,
+        "claude", "-p",
         "--output-format", "text",
         "--model", MODEL,
-        "--append-system-prompt", system,
+        "--append-system-prompt", " ".join(system.split()),
         "--allowedTools", *READ_ONLY_ALLOW,
         "--disallowedTools", *READ_ONLY_DENY,
     ]
     for path in dirs[1:]:
         cmd += ["--add-dir", path]
-    proc = subprocess.run(cmd, cwd=(dirs[0] if dirs else ROOT), capture_output=True, text=True,
-                          encoding="utf-8", errors="replace", timeout=CLAUDE_TIMEOUT,
+    proc = subprocess.run(cmd, input=question, cwd=(dirs[0] if dirs else ROOT), capture_output=True,
+                          text=True, encoding="utf-8", errors="replace", timeout=CLAUDE_TIMEOUT,
                           shell=(os.name == "nt"))
     if proc.returncode != 0:
         detail = (proc.stderr or "claude zwrocil %d" % proc.returncode).strip()
