@@ -108,6 +108,11 @@ def whisper_worker():
 
     Protocol: one audio path per input line, one JSON object per output line.
     """
+    # ZASADY 4.10: this pipe carries Polish text, and sys.stdout here defaults to the console
+    # code page (cp1250), which the parent reads as UTF-8 -- one 'l' with a stroke killed every
+    # transcription (2026-09-16).
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stdin.reconfigure(encoding="utf-8", errors="replace")
     compute = "float16" if WHISPER_DEVICE == "cuda" else "int8"
     from faster_whisper import WhisperModel
 
@@ -124,7 +129,7 @@ def whisper_worker():
             out = {"text": " ".join(seg.text.strip() for seg in segments).strip()}
         except Exception as exc:  # noqa: BLE001 - the server must hear about it
             out = {"error": str(exc)[:300]}
-        sys.stdout.write(json.dumps(out, ensure_ascii=False) + "\n")
+        sys.stdout.write(json.dumps(out) + "\n")  # ASCII escapes: code-page proof
         sys.stdout.flush()
     return 0
 
@@ -134,9 +139,10 @@ def worker_start():
     if _worker is not None and _worker.poll() is None:
         return
     cmd = [sys.executable, os.path.abspath(__file__), "--whisper-worker"]
+    env = dict(os.environ, PYTHONIOENCODING="utf-8")  # the child writes what we read (ZASADY 4.10)
     _worker = subprocess.Popen(cmd, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                stderr=subprocess.DEVNULL, text=True, encoding="utf-8",
-                               bufsize=1)
+                               bufsize=1, env=env)
     hello = _worker.stdout.readline()
     if not hello:
         raise RuntimeError("proces transkrypcji nie wystartowal")
