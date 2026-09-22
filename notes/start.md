@@ -21,9 +21,25 @@
   i nie strojony. Świadomie trzymane osobno od trzech porównań z 5.1 (wielokrotność, ZASADY 5.4).
 - Testy: **28 zielonych**, mutacja `for_facts` złapana przez dwa testy.
 
-**Aktywne TODO:** `poc-carplay-command` 3.8–3.9 (pomiar wariantu C), 1.6–1.9 (wdrożenie na pececie
-w pracy), 2.7 (skrócenie czasu odpowiedzi — kandydat: wstrzyknięcie promptu do żywej sesji zamiast
-`claude -p`), 6.1–6.2 (E1, wciąż nierobiony); `voice-intent` 5.5, 5.6, 6.3.
+- **Decyzja użytkownika: rozmowa ciągła jest ważniejsza niż to, że to ma być ChatGPT.** Nowa zmiana
+  OpenSpec **`voice-grok-front`** (24 zadania, `validate --strict` zielony): front to **Grok Voice**
+  (CarPlay od maja 2026, tryb głosowy sięga po własne konektory MCP i odpytuje w pętli), mózgiem
+  zostaje orchestrator z `project_integration`.
+- **Nie budujemy mózgu drugi raz.** Serwer MCP ma być cienką warstwą przed `POST /api/agent/chat` —
+  zero własnego promptu, zero `claude -p`, zero drugiej listy repozytoriów (test w zadaniu 2.4).
+  `ask_core.py`, `voice_gateway.py` i `execute_worker.py` już istnieją i działają.
+- **Remote Control ≠ to samo.** Podłącza żywą lokalną sesję do claude.ai/code i aplikacji Claude
+  (Pro/Max/Team/Enterprise), ale **bez API i bez CarPlay** — telefon w ręku, nie auto. Do żywego
+  okna interaktywnego **z CLI nie da się wejść** (spike 2026-09-17); `claude -p --resume` tylko
+  przy oknie bezczynnym.
+- **Prawdziwa cena: most musi wyjść za Tailscale Funnel**, czyli z prywatnego staje się publiczny.
+  Stąd bramki grupy 3 przed włączeniem: limit tempa, log, zapis domyślnie wyłączony i wyłącznie
+  przez `execute_worker`, potwierdzenie głosem.
+
+**Aktywne TODO:** `voice-grok-front` 1.1–1.5 (potwierdzić plan Grok-a, przeczytać
+`talk-to-claude-code`, zmierzyć orchestrator, uzupełnić `live_sessions.py`);
+`poc-carplay-command` 3.8–3.9 (pomiar wariantu C), 1.6–1.9 (wdrożenie na pececie w pracy),
+2.7 (skrócenie czasu odpowiedzi), 6.1–6.2 (E1, wciąż nierobiony); `voice-intent` 5.5, 5.6, 6.3.
 
 ## Ostatnia sesja — 2026-09-16 (sesja 3: warstwa intencji mostu głosowego)
 
