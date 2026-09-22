@@ -7,6 +7,8 @@ Endpoints
     POST /ask/<secret>           -> plain text answer (Shortcuts feeds it to Speak Text)
          body: JSON {"q": "..."} or raw audio bytes (Content-Type audio/*)
          query: ?format=json     -> JSON {"q": ..., "a": ..., "ms": ..., "stt_ms": ...}
+         query: ?style=facts     -> dense facts instead of a spoken sentence, for the
+                                    "Ask ChatGPT" variant of the Shortcut (OpenSpec 3.7)
 
 Safety (OpenSpec D6)
     - binds to the Tailscale address only, never 0.0.0.0
@@ -69,6 +71,19 @@ SYSTEM = (
     "i odczyt plikow, a nie przez komendy systemowe. "
     "Zgadywac nie wolno: jesli danych nie ma, powiedz wprost, ze ich nie ma."
 )
+
+# Variant C of the iOS Shortcut (OpenSpec 3.7): the answer is NOT read aloud by the phone,
+# it is handed to the "Ask ChatGPT" action, which phrases it. Shaping it for speech first
+# would mean measuring ChatGPT's paraphrase of a paraphrase, so this style keeps the facts
+# dense and skips the spoken-sentence rules above.
+FACTS = (
+    "Twoja odpowiedz NIE jest czytana na glos - trafia do drugiego modelu, ktory ulozy z niej "
+    "zdanie dla kierowcy. Podaj same fakty po polsku: nazwa repozytorium, liczby, daty, nazwy "
+    "plikow. Do szesciu krotkich linii, bez wstepu, bez zwrotow do kierowcy. "
+    "Czego nie wiesz, nie zgaduj - napisz 'brak danych'."
+)
+# Room for those six lines; the spoken path stays at 700 because a car speaker does not.
+FACTS_LIMIT = 1500
 
 _lock = threading.Lock()
 _calls = []
@@ -328,6 +343,17 @@ def for_speech(text):
     return text[:700]
 
 
+def for_facts(text):
+    """Shaping for the 'Ask ChatGPT' variant: keep the lines, drop only code blocks.
+
+    Failure prevented: collapsing this to one 700-character sentence, which would strip the
+    line breaks that carry 'one fact per line' and hide half the material from the model.
+    """
+    text = re.sub(r"```.*?```", " ", text, flags=re.S)
+    lines = [re.sub(r"[ \t]+", " ", ln).strip() for ln in text.splitlines()]
+    return "\n".join(ln for ln in lines if ln)[:FACTS_LIMIT]
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "ask-poc/1"
 
@@ -352,6 +378,7 @@ class Handler(BaseHTTPRequestHandler):
         started = time.time()
         path = self.path.split("?")[0]
         want_json = "format=json" in self.path
+        want_facts = "style=facts" in self.path
         if not path.startswith("/ask/") or path[len("/ask/"):] != SECRET:
             log("deny", "zla sciezka z %s" % self.client_address[0])
             self._send(403, "brak dostepu")
@@ -421,9 +448,12 @@ class Handler(BaseHTTPRequestHandler):
         sync_lines = sync_box.get("lines") or ["nie zdazylem sprawdzic stanu repozytoriow"]
         log("sync", "czekalem %.1f s | %s" % (t_sync, " | ".join(sync_lines)))
         scoped = dict(parsed, repo=scope)
+        extra = intent.scope_instruction(scoped)
+        if want_facts:
+            extra = extra + "\n" + FACTS
+        shape = for_facts if want_facts else for_speech
         try:
-            answer = for_speech(ask_claude(context_block(sync_lines) + question, dirs,
-                                           intent.scope_instruction(scoped)))
+            answer = shape(ask_claude(context_block(sync_lines) + question, dirs, extra))
         except subprocess.TimeoutExpired:
             log("error", "timeout claude")
             self._send(504, "Zadanie trwa za dlugo, sprawdz pozniej.")
@@ -434,7 +464,8 @@ class Handler(BaseHTTPRequestHandler):
             return
 
         ms = int((time.time() - started) * 1000)
-        log("answer", "%d ms [zakres %s]: %s" % (ms, scope, answer[:160]))
+        log("answer", "%d ms [zakres %s, styl %s]: %s"
+            % (ms, scope, "facts" if want_facts else "mowa", answer[:160]))
         if want_json:
             body = json.dumps({"q": question, "a": answer, "ms": ms,
                                "stt_ms": int(t_stt * 1000), "sync_ms": int(t_sync * 1000),

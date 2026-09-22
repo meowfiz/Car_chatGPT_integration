@@ -108,6 +108,55 @@ Ta sama konstrukcja, z dwiema różnicami:
 Adres i reszta bez zmian. Jeśli Siri uruchomi skrót, a nagrywanie zawiesi się albo poprosi
 o dotknięcie ekranu, wracamy do wersji 1 i zapisujemy to jako wynik pomiaru.
 
+### Skrót „Monitor GPT" (wersja 3, głos ChatGPT) — OpenSpec 3.7
+
+Po co: to **jedyny sposób, żeby w pętli siedział interfejs głosowy ChatGPT**, przy zachowaniu
+Claude'a jako mózgu. ChatGPT Voice nie umie wywołać własnego MCP ani webhooka (weryfikacja:
+`notes/research/2026-09-22-chatgpt-voice-weryfikacja.md`), więc ręce ma Skrót, a ChatGPT dostaje
+gotowe fakty i tylko układa z nich zdanie dla kierowcy.
+
+Wymaga zainstalowanej aplikacji ChatGPT (akcja **Ask ChatGPT** pochodzi z niej, nie z systemu).
+
+1. Skopiuj skrót **Monitor** (wersja 1) i nazwij kopię **Monitor GPT**.
+2. W akcji **Pobierz zawartość URL** dopisz do adresu parametry:
+   `.../ask/<twoj-sekret>?format=json&style=facts`
+   — `style=facts` sprawia, że most oddaje zwięzłe fakty (do sześciu linii, limit 1500 znaków)
+   zamiast gotowego zdania do przeczytania. Bez tego ChatGPT parafrazowałby parafrazę.
+3. Dodaj **Pobierz wartość ze słownika** — klucz `a` z wyniku poprzedniej akcji.
+4. Dodaj akcję **Ask ChatGPT**. Jako prompt wstaw tekst:
+
+   ```
+   Jestes lektorem w samochodzie. Odpowiedz po polsku, maksymalnie dwoma zdaniami,
+   na pytanie kierowcy, uzywajac WYLACZNIE ponizszych faktow. Nie dodawaj niczego
+   od siebie, nie komentuj, nie zadawaj pytan. Czego w faktach nie ma, nazwij brakiem danych.
+   PYTANIE: <Dyktowany tekst>
+   FAKTY: <Wartosc ze slownika>
+   ```
+
+   W ustawieniach akcji wyłącz kontynuowanie rozmowy (każde pytanie ma iść osobno), a jeśli
+   akcja oferuje wybór modelu, ustaw najszybszy dostępny — pętla i tak nie trafia w próg 15 s.
+5. **Wypowiedz tekst** z wyniku akcji ChatGPT, głos polski.
+6. Uruchom raz z aplikacji, żeby zatwierdzić pytanie o dostęp do ChatGPT.
+
+Czego się spodziewać i co zmierzyć (zadania 3.8–3.9): ta wersja **dokłada jeden przelot modelu**,
+więc jest z definicji wolniejsza od wersji 1. Ma sens tylko wtedy, gdy kupuje za to coś mierzalnego
+— naturalniejsze zdanie albo mniej przekręconych nazw. Warunek negatywu zadeklarowany z góry:
+**mediana dłuższa o więcej niż 4 s bez poprawy zrozumiałości = wariant odrzucony**, nie strojony.
+
+Ograniczenie prywatnościowe, świadome: fragmenty notatek i stanu repozytoriów wychodzą poza
+tailnet do OpenAI. Wariant główny (Whisper + most) tego nie robi i pozostaje domyślny.
+
+Sprawdzenie samego mostu z komputera, bez telefonu:
+
+```bash
+curl -X POST -H "Content-Type: application/json" \
+     --data '{"q":"Co slychac w projekcie HA?"}' \
+     "http://100.95.41.116:8787/ask/<sekret>?format=json&style=facts"
+```
+
+W logu pojawi się wtedy `answer ... [zakres ..., styl facts]` — to potwierdza, że parametr dotarł,
+a nie został po cichu zignorowany.
+
 ## Bezpieczeństwo tego mostu
 
 - Nasłuchuje wyłącznie na adresie Tailscale, nie na `0.0.0.0`, więc z internetu jest niewidoczny.

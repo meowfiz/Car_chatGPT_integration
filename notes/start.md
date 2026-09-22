@@ -1,5 +1,30 @@
 # START — Car_chatGPT_integration
 
+## Ostatnia sesja — 2026-09-22 (sesja 4: weryfikacja ChatGPT Voice + wariant „Monitor GPT")
+
+- **PDF `podsumowanie_voice_claude_carplay.pdf` zweryfikowany u źródeł — jego rekomendacja nie
+  prowadzi do ChatGPT Voice.** `osaighi/talk-to-claude-code` (istnieje, 31 commitów) jest zbudowany
+  pod **Grok Voice** na CarPlay, bo Grok ma „Bring Your Own MCP"; `fireishott/Herald` jest własną
+  aplikacją iOS i **zarchiwizowany 2026-08-06**; cytat o zgłoszeniu w `anthropics/claude-ai-mcp`
+  **niepotwierdzony** (DO WERYFIKACJI). Szczegóły i linki:
+  `notes/research/2026-09-22-chatgpt-voice-weryfikacja.md`.
+- **ChatGPT jest w CarPlay natywnie od marca 2026** (iOS 26.4+), ale bez słowa budzącego i bez
+  możliwości sterowania czymkolwiek, a **tryb głosowy nadal nie obsługuje apps/konektorów/MCP**
+  (pomoc OpenAI + otwarty wątek deweloperski). Ustalenie sesji 1 trzyma się bez zmian.
+- **Zrealizowany wariant C skrótu — „Monitor GPT"**: most oddaje pod `?style=facts` zwięzłe fakty
+  (do sześciu linii, 1500 znaków) zamiast zdania do przeczytania, a zdanie dla kierowcy układa
+  akcja **Ask ChatGPT** w Skrócie. To **jedyna droga, żeby w pętli siedział głos ChatGPT** —
+  ręce ma Skrót, nie model. Kroki: `notes/HANDOFF_most_pytan.md`. Domyślne zachowanie mostu
+  **bez zmian** (ZASADY 4.9).
+- **Pomiaru jeszcze nie ma, prerejestracja jest** (zadanie 3.8): jedno porównanie, warunek negatywu
+  zadeklarowany z góry — mediana dłuższa o > 4 s bez poprawy zrozumiałości ⇒ wariant odrzucony
+  i nie strojony. Świadomie trzymane osobno od trzech porównań z 5.1 (wielokrotność, ZASADY 5.4).
+- Testy: **28 zielonych**, mutacja `for_facts` złapana przez dwa testy.
+
+**Aktywne TODO:** `poc-carplay-command` 3.8–3.9 (pomiar wariantu C), 1.6–1.9 (wdrożenie na pececie
+w pracy), 2.7 (skrócenie czasu odpowiedzi — kandydat: wstrzyknięcie promptu do żywej sesji zamiast
+`claude -p`), 6.1–6.2 (E1, wciąż nierobiony); `voice-intent` 5.5, 5.6, 6.3.
+
 ## Ostatnia sesja — 2026-09-16 (sesja 3: warstwa intencji mostu głosowego)
 
 - **Most rozumie już nie tylko pytania, ale i zamiar.** Nowa zmiana OpenSpec `voice-intent`

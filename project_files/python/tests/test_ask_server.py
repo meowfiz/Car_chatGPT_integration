@@ -98,5 +98,31 @@ def test_sync_disabled_says_so_instead_of_pretending(tmp_path, monkeypatch):
     assert m.sync_all(1) == ["synchronizacja wylaczona"]
 
 
+# --- for_speech / for_facts -------------------------------------------------------------
+# Failure prevented: the "Ask ChatGPT" variant (OpenSpec 3.7) silently getting the SPOKEN
+# answer - one collapsed 700-character sentence - instead of the facts. ChatGPT would then
+# paraphrase a paraphrase, and the measurement would compare nothing.
+
+def test_for_facts_keeps_the_lines_that_carry_one_fact_each(monkeypatch):
+    m = load(monkeypatch)
+    out = m.for_facts("repo: HA\nzadania: 6 z 32\nostatnia sesja: 2026-09-16")
+    assert out.splitlines() == ["repo: HA", "zadania: 6 z 32", "ostatnia sesja: 2026-09-16"]
+
+
+def test_for_speech_still_collapses_to_one_line(monkeypatch):
+    """The spoken path must not inherit the new behaviour (ZASADY 4.9)."""
+    m = load(monkeypatch)
+    out = m.for_speech("repo: HA\nzadania: 6 z 32")
+    assert "\n" not in out and out == "repo: HA zadania: 6 z 32"
+
+
+def test_for_facts_drops_code_blocks_but_keeps_more_than_the_spoken_limit(monkeypatch):
+    m = load(monkeypatch)
+    long_lines = "\n".join("fakt numer %d" % i for i in range(120))
+    out = m.for_facts("```\nimport os\n```\n" + long_lines)
+    assert "import os" not in out
+    assert len(out) > 700 and len(out) <= m.FACTS_LIMIT
+
+
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))
