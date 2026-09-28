@@ -7,7 +7,8 @@
     "wszystkie repozytoria",
     "wszystkie repo",
     "kazdy projekt",
-    "w ogole wszedzie"
+    "w ogole wszedzie",
+    "trajektorieFet"
   ],
   "repos": {
     "Car_chatGPT_integration": [
@@ -77,6 +78,14 @@
       "vessel analizis",
       "analiza naczyn",
       "naczynia"
+    ],
+    "trajektorieFet": [
+      "trajektorie",
+      "fet",
+      "trajektorie fet",
+      "trajektoriefet",
+      "projekt trajektorie",
+      "projekt trajektorie fet"
     ]
   }
 }
