@@ -8,7 +8,8 @@
     "wszystkie repo",
     "kazdy projekt",
     "w ogole wszedzie",
-    "trajektorieFet"
+    "trajektorieFet",
+    "renderingTests"
   ],
   "repos": {
     "Car_chatGPT_integration": [
@@ -86,6 +87,14 @@
       "trajektoriefet",
       "projekt trajektorie",
       "projekt trajektorie fet"
+    ],
+    "renderingTests": [
+      "rendering",
+      "tests",
+      "rendering tests",
+      "renderingtests",
+      "projekt rendering",
+      "projekt rendering tests"
     ]
   }
 }
