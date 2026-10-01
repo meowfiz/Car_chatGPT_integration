@@ -7,9 +7,7 @@
     "wszystkie repozytoria",
     "wszystkie repo",
     "kazdy projekt",
-    "w ogole wszedzie",
-    "trajektorieFet",
-    "renderingTests"
+    "w ogole wszedzie"
   ],
   "repos": {
     "Car_chatGPT_integration": [
@@ -95,6 +93,21 @@
       "renderingtests",
       "projekt rendering",
       "projekt rendering tests"
+    ],
+    "Python_I_2.0": [
+      "kurs python",
+      "kurs pythona",
+      "python dwa zero",
+      "python 2.0",
+      "python i 2.0",
+      "projekt python"
+    ],
+    "Python_I_mini": [
+      "python mini",
+      "pajton mini",
+      "repo marty",
+      "mini marty",
+      "projekt python mini"
     ]
   }
 }
