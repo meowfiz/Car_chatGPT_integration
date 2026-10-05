@@ -221,3 +221,25 @@ def test_every_fixture_row_declares_its_source():
 
 if __name__ == "__main__":
     raise SystemExit(pytest.main([__file__, "-q"]))
+
+
+def test_longer_literal_alias_containing_a_shorter_one_wins():
+    """Prevents 2026-10-05: 'co nowego w publikacja 2d filters' hit RibnXtr2026's 'publikacja'
+    and publikacja---2d_Filters' 'publikacja 2d filters' literally and came out ambiguous."""
+    table = {"min_ratio": 0.82, "wszystkie": [],
+             "repos": {"RibnXtr2026": ["publikacja"], "pub2d": ["publikacja 2d filters"]}}
+    assert intent.match_repo("co nowego w publikacja 2d filters", table) == ("pub2d", "exact")
+    assert intent.match_repo("stan projektu publikacja", table) == ("RibnXtr2026", "exact")
+
+
+def test_two_unrelated_literal_hits_stay_ambiguous():
+    table = {"min_ratio": 0.82, "wszystkie": [],
+             "repos": {"a": ["monitor"], "b": ["ikony"]}}
+    assert intent.match_repo("monitor i ikony", table) == ("*", "ambiguous")
+
+
+def test_longest_of_several_literal_hits_of_one_repo_is_compared():
+    """'2d filters' is heard too, but only the longest alias contains RibnXtr2026's 'publikacja'."""
+    table = {"min_ratio": 0.82, "wszystkie": [],
+             "repos": {"RibnXtr2026": ["publikacja"], "pub2d": ["2d filters", "publikacja 2d filters"]}}
+    assert intent.match_repo("co nowego w publikacja 2d filters", table) == ("pub2d", "exact")

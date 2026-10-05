@@ -128,6 +128,23 @@ def _alias_score(alias_norm, words, haystack):
     return best
 
 
+def subsuming_literal(literal):
+    """The repo whose literal alias contains every other repo's literal alias, or None.
+
+    2026-10-05: "publikacja" belongs to RibnXtr2026 and "publikacja 2d filters" to
+    publikacja---2d_Filters; saying the long name hit both literally and came out "ambiguous".
+    The longer phrase that contains the shorter one is what was said. Only decides between
+    literal hits, so a fuzzy near-miss never overrides anything.
+    """
+    if len(literal) < 2:
+        return None
+    repo, longest = max(literal.items(), key=lambda kv: len(kv[1]))
+    for other, alias in literal.items():
+        if other != repo and (alias == longest or (" " + alias + " ") not in (" " + longest + " ")):
+            return None
+    return repo
+
+
 def match_repo(text, table):
     """(repo, reason). repo is a canonical name or "*"; reason says WHY, which the log needs.
 
@@ -147,10 +164,14 @@ def match_repo(text, table):
             return "*", "explicit-all"
 
     scored = []
+    literal = {}  # repo -> longest alias heard literally
     for repo, aliases in table.get("repos", {}).items():
         best = 0.0
         for alias in aliases:
-            score = _alias_score(normalize(alias), words, haystack)
+            alias_norm = normalize(alias)
+            score = _alias_score(alias_norm, words, haystack)
+            if score >= 1.0 and len(alias_norm) > len(literal.get(repo, "")):
+                literal[repo] = alias_norm
             if score > best:
                 best = score
         if best >= min_ratio:
@@ -159,6 +180,9 @@ def match_repo(text, table):
         return "*", "no-match"
     scored.sort(key=lambda pair: (-pair[0], pair[1]))
     top_score, top_repo = scored[0]
+    winner = subsuming_literal(literal)
+    if winner:
+        return winner, "exact"
     if len(scored) > 1 and (top_score - scored[1][0]) <= AMBIGUITY_MARGIN:
         return "*", "ambiguous"
     return top_repo, ("exact" if top_score >= 1.0 else "fuzzy")
