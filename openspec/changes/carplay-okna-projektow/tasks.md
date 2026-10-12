@@ -51,6 +51,8 @@
 - [x] 2c.7 `GET /api/car/metryki?h=24` — parser `voice_gateway.log`, zlicza `car-*` wpisy. Smoke: 121 wywolan w 24h, top 3: dispatch 32, poc 30, status 13
 - [x] 2c.8 Self-test rozszerzony do 15 endpointow (bylo 11): + projekty, ostatnie_todo, zamknij.pusty, powtorz.pusta. 15/15 PASS w ~38s
 - [x] 2c.9 `POST /api/car/stop` body `{pane}` — awaryjne przerwanie dispatcha z auta. `tmux send-keys C-c` do pane. Z23 w pętli profesor-student. Pomiar: 347 ms (próg 2000 ms). 1 pytest nazywający porażkę („stop bez pane zwraca 400, nie 500"), self-test rozszerzony do 17/17 (+ car.stop.brak_pane 400, + car.stop.nieistniejacy 404)
+- [ ] 2c.10 **PREREJESTRACJA Z24** (przed uruchomieniem skryptu, ZASADY 3.3): pomiar e2e `/api/car/stop` 10 prób z pecetu przez adres tailnetowy (symulacja telefonu bo user offline). **Hipoteza negatywna**: mediana > 3000 ms lub ≥ 1 timeout/5xx w 10 → endpoint nie nadaje się do auta, wracamy do architektury. **Hipoteza pozytywna**: mediana ≤ 1500 ms, p90 ≤ 2500 ms, 10/10 OK. **3 miary**: (1) latencja e2e per próba z zegarem bramki — min/median/p90/max; (2) skuteczność `tmux send-keys`: `capture-pane` przed/po, zmiana ostatniej linii = sukces, próg 10/10; (3) status HTTP: 10×200, zero 4xx/5xx, próg 10/10. **Liczba porównań: 1** (ścieżka główna /stop, bez wariantów). Konfuzje: sieć tailnet (symulacja ≠ telefon LTE), pane bez aktywnego procesu (symulowany sleep ≠ Claude Code). Wynik NIE uprawnia do: „działa pod obciążeniem" (10 prób, nie 1000), „na każdym pane" (1 pane, nie 22), „sieć LTE OK" (symulacja z pecetu).
+- [ ] 2c.11 Z24 pomiar: skrypt `poc/stop_e2e_pomiar.py` — 10 prób, zapis `project_files/run_files/stop_e2e_<data>.jsonl`, dystrybucja z 3 miar, decyzja wg prerejestracji 2c.10
 
 ## 3. Rejestr aktywnej sesji CarPlay
 
