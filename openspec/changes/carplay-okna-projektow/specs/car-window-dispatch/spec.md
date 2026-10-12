@@ -67,6 +67,65 @@ jak w `/api/car/dispatch`).
   `Car_chatGPT_integration`, bramka zwraca `{"text": "Car_chatGPT_integration, pracuje nad X,
   zadan N z M otwartych.", "resolved_project": "Car_chatGPT_integration", ...}`
 
+### Requirement: Endpointy wsparcia głosowego (todo, zamknij, powtorz, ostatnie_todo)
+
+Bramka SHALL wystawiać dodatkowe endpointy dla wygody użytkownika głosowego:
+
+- `POST /api/car/todo` — body JSON `{text, project?, session_id?}`; zapisuje linię do
+  `~/.claude/carplay_todos.jsonl` (poza repo). Project auto z sticky session jeśli puste.
+- `POST /api/car/zamknij` — body JSON `{session_id}`; kasuje wpis sticky session, zwraca
+  „zamkniete, bylo X" lub „nie bylo aktywnej sesji".
+- `POST /api/car/powtorz` — body JSON `{session_id}`; zwraca `last_text` zapisany po
+  ostatnim pomyślnym dispatchu dla tej sesji (albo „nie mam co powtorzyc").
+- `GET /api/car/ostatnie_todo?n=5` — czyta końcówkę `carplay_todos.jsonl`, buduje tekst
+  typu „ostatnie zadania: X; Y; Z"; `n` od 1 do 10.
+
+Wszystkie te 4 endpointy MUST wymagać `Authorization: Bearer <token>`; MUST zwracać JSON
+z `{text, outcome}` gdzie `outcome` ∈ `sent | missing`. **Rejestr sesji** MUST być
+zabezpieczony `threading.Lock` wokół sekwencji read-modify-write (`car_set_active`,
+`car_update_last_text`, `_car_zamknij`) — bez tego dwa równoległe dispatchy nadpiszą się
+nawzajem.
+
+#### Scenariusz: Dispatch zapisuje last_text
+
+- **WHEN** HA woła `/api/car/dispatch` z `{session_id: "s1", ...}`, bramka łowi
+  `Glosowo: zrobione`
+- **THEN** `car_update_last_text("s1", "zrobione")` zapisuje do rejestru;
+  kolejne `/api/car/powtorz` z tym `session_id` zwraca `{"text": "zrobione", "outcome": "sent"}`
+
+#### Scenariusz: Zamknij kasuje sticky
+
+- **WHEN** sesja `s1` ma projekt `X` w rejestrze, HA woła `POST /api/car/zamknij`
+  z `{session_id: "s1"}`
+- **THEN** bramka zwraca `{"text": "zamkniete, bylo X", "outcome": "sent"}`;
+  następny dispatch bez pola `project` i bez prefiksu zwraca `{"outcome": "missing",
+  "text": "sesja wygasla, powiedz do okna X"}`
+
+#### Scenariusz: Zamknij idempotentny
+
+- **WHEN** sesja `s1` nie ma wpisu w rejestrze, HA woła `POST /api/car/zamknij`
+- **THEN** bramka zwraca `{"text": "nie bylo aktywnej sesji", "outcome": "sent"}`,
+  bez błędu
+
+#### Scenariusz: Ostatnie TODO n=3
+
+- **WHEN** `carplay_todos.jsonl` ma 5 wpisów, HA woła `GET /api/car/ostatnie_todo?n=3`
+- **THEN** bramka zwraca `{"text": "ostatnie zadania: X; Y; Z", "outcome": "sent", "items": [...]}`
+  gdzie X, Y, Z to teksty z ostatnich 3 wpisów (najstarszy pierwszy w tekście)
+
+### Requirement: Rozszerzony parser `okna.resolve` o token-match
+
+`okna.resolve(query, names)` SHALL próbować kolejno 4 tiers: (1) exact match normalized,
+(2) prefix match normalized, (3) substring match normalized, (4) **token-match**:
+query dzielone na tokeny po znakach niealfanumerycznych; gdy ≥ 2 tokeny, pasuje nazwa
+w której każdy token jest podciągiem znormalizowanej nazwy. Pierwszy niepusty tier wygrywa.
+
+#### Scenariusz: Token-match dla rozstrzelonej nazwy
+
+- **WHEN** `okna.resolve("car integration", ["Car_chatGPT_integration", "HA"])`
+- **THEN** zwraca `["Car_chatGPT_integration"]` (token-match: „car" ⊂ „carchatgptintegration" oraz
+  „integration" ⊂ „carchatgptintegration"); exact/prefix/substring puste
+
 ### Requirement: Diagnostyczny endpoint audio dla PoC Siri (do usunięcia)
 
 Bramka SHALL wystawiać `GET /api/car/test-audio` oraz `GET /api/car/test-text` jako

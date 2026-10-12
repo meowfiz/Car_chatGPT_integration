@@ -1,14 +1,14 @@
 # OpenSpec task status (generated)
 
-Generated 2026-10-12 22:50. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-12 23:05. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 58/156 tasks complete across 5 changes.**
+**Overall: 63/161 tasks complete across 5 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 24/48 | 2026-10-12 |
+| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 29/53 | 2026-10-12 |
 | [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-10-05 |
 | [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-10-05 |
 | [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 7/39 | 2026-10-05 |
@@ -19,7 +19,7 @@ Generated 2026-10-12 22:50. Regenerate with `python notes/gen_openspec_status.py
 
 ## carplay-okna-projektow
 
-`24/48` tasks complete.
+`29/53` tasks complete.
 
 ### 1. PoC gating — Siri Shortcut odtwarza audio z HTTPS tailnetu w CarPlay
 
@@ -72,6 +72,16 @@ Generated 2026-10-12 22:50. Regenerate with `python notes/gen_openspec_status.py
 | [x] | 2b.3 `POST /api/car/powtorz` body `{session_id}` — powtarza ostatnie Glosowo. Rejestr sesji trzyma `last_text`, dispatch aktualizuje |
 | [x] | 2b.4 Pure helpery: `build_car_status_text`, `build_car_project_text`, `car_update_last_text`, `car_get_last_text`. 9 nowych testów (razem 47 passed, 1 skipped) |
 | [x] | 2b.5 Dokumentacja: `notes/HANDOFF_car_endpoints.md` (337 linii) — kontrakt, autoryzacja, rejestr sesji, odmowy, 4-tier resolver, wzorzec rest_command dla HA |
+
+### 2c. Dojrzałość PoC (sprint 2026-10-12 noc)
+
+| Done | Task |
+|---|---|
+| [x] | 2c.1 `GET /api/car/ostatnie_todo?n=5` — recytacja ostatnich N TODO z `carplay_todos.jsonl`; `?n=` od 1 do 10 |
+| [x] | 2c.2 `poc/car_selftest.py` — sanity check 11 endpointów, PASS/FAIL/czas, bez body check. Smoke 11/11 w ~42 s |
+| [x] | 2c.3 Code review subagent (0 BLOCKER, 4 NICE-TO-HAVE, 2 COSMETIC): auth helper dedup (`_car_authorized`), rozszerzone `CAR_REFUSE_PATTERNS` z 11 do 23 wzorców (powershell/iex/\|sh/del /s/chmod 777/dd/mkfs/rm -fr/rm --recursive) + 12 nowych testów |
+| [x] | 2c.4 Fix N1 race w rejestrze sesji: `threading.Lock` wokół RMW sekwencji w `car_set_active`, `car_update_last_text`, `_car_zamknij`. Test: 20 wątków set_active → 20 session_id w rejestrze. Lazy path lookup w `car_sessions_{load,save}` (default=None, re-read z CAR_SESSION_PATH) |
+| [x] | 2c.5 Spec rozszerzony o 2 nowe wymagania: endpointy wsparcia (todo/zamknij/powtorz/ostatnie_todo) i 4-tier `okna.resolve` |
 
 ### 3. Rejestr aktywnej sesji CarPlay
 
