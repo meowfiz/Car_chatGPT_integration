@@ -82,6 +82,13 @@
 
 - [x] 2c.18 **Z28 WYNIK** (noc 2026-10-13, po PREREJESTRACJI 2c.17): wrapper `_resolve_window_with_aliases` zbudowany. **Kontrola odtworzenia P2**: wrapper z pustym cache == `okna.resolve` solo dla **49/49 fraz** (ZASADY 5.3 spełniona). **Pomiar główny**: **M1 = 42/42** (nie 39 — `aliases.json` ma 14 projektów, nie 13 jak policzyłem w prerejestracji; wszystkie rozwiązują się do kanonu); **M2 = 10/10** (wszystkie frazy zbioru B zachowują puste zwroty). **DECYZJA: ZALICZONE**. 4 nowe pytesty (`test_wrapper_aliasow_*`: mapuje, fallback, pusty cache, 4xx), **68 pytest passed** (było 64, +4). Skrypt pomiarowy `poc/z28_aliases_pomiar.py` z kontrolą P2 odmawiającą uruchomienia głównego pomiaru przy rozjazdach. **Fix ubocznego nie było** — kod przeszedł od razu. **Wrapper nie podpięty do `_car_dispatch`** w tej iteracji — osobna tura po pomiarze z rzeczywistymi frazami z auta (ZASADY 3.1: osobna zmiana)
 
+- [ ] 2c.19 **PREREJESTRACJA Z29a** (PRZED mutacjami, ZASADY 3.3 + 4.4): mutation test wrappera `_resolve_window_with_aliases`. **Hipoteza**: każdy z 4 testów `test_wrapper_aliasow_*` wykryje co najmniej 1 mutację swojej gałęzi. **Lista 4 mutacji** (ZASADY 5.4 — dokładnie 4, nie więcej):
+  1. **Wyłącz mapowanie**: w `_resolve_window_with_aliases` zwróć od razu `resolver_fn(query)` z pominięciem cache aliasów → ma paść `test_wrapper_aliasow_mapuje_fraze_do_kanonu`
+  2. **Zepsuj fallback**: dla frazy spoza aliasów zwróć `[]` zamiast `resolver_fn(query)` → ma paść `test_wrapper_aliasow_fallback_do_resolver_dla_fraz_spoza`
+  3. **Zepsuj zachowanie pustego cache**: przy pustym cache zwróć `[]` zamiast delegować do resolver → ma paść `test_wrapper_aliasow_pusty_cache_zachowuje_sie_jak_resolver_solo`
+  4. **Zepsuj politykę 4xx**: dla 4xx w `_car_cached_aliases` zignoruj zamiast podnieść (cichy fallback) → ma paść `test_wrapper_aliasow_4xx_rzuca_wyjatek_do_gory`
+  **Statystyka**: liczba mutacji wykrytych / 4. **Próg = 4/4**. **Warunek NEGATYWU** (ZASADY 5.8): < 4/4 → mutacja niewykryta dostaje własny test; stop dalszych mutacji. **Wynik NIE uprawnia**: do kompletnego pokrycia semantycznego wrappera. 4 mutacje = 4 gałęzie, nie wszystkie
+
 ## 3. Rejestr aktywnej sesji CarPlay
 
 - [ ] 3.1 Moduł `project_integration/monitor/carplay_sessions.py`: `load()`, `set_active(session_id, project)`, `get_active(session_id, now)` z wygaśnięciem po 600 s, `mark_pending(session_id)`; lock przez `monitor/lockutil.py`
