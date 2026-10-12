@@ -223,6 +223,28 @@ nie commitowane (łamałyby produkcyjny kontrakt).
 Mierzy tylko 4 gałęzie decyzyjne, nie wszystkie możliwe nieprawidłowe implementacje.
 Nie bada kontraktu `_car_cached_aliases` wobec HTTPS tailnetowego (tylko ścieżki błędne).
 
+### Z29c-fix — dokumentacja decyzji „nie normalizujemy diakrytyki" + test `data: {}` (noc 2026-10-13)
+
+Po Z29c (0 KRYT) profesor zalecił fiksy w kolejności: **dokumentacja pierwsza**, test
+drugi — bo decyzja w głowie teraz, test może odkryć coś nieoczekiwanego i decyzja
+wyleci z pamięci.
+
+**Komentarz w kodzie** (`voice_gateway.py:1073`): DECYZJA 2026-10-13 z konkretnym
+warunkiem odwrócenia. Format z profesora: nie „nie normalizujemy, bo tak", tylko
+„odwróć gdy X% zapytań z telefonu zawiera niepusty NFKD-diff + prerejestracja z progami
+M1/M2 dla znormalizowanej ścieżki". Bez konkretnego warunku komentarz staje się
+przesądem (ZASADA 0 ZASADY_PRACY.md).
+
+**Odsyłacz w HANDOFF** (`notes/HANDOFF_car_endpoints.md`): jedno zdanie z linkiem do
+`voice_gateway.py:1073` — druga maszyna znajdzie decyzję bez czytania kodu, ale treść
+jest w jednym miejscu („dwa miejsca prawdy to zero miejsc prawdy").
+
+**Test** (`test_wrapper_aliasow_pusty_dict_cache_fallback_do_resolver`): dla
+`alias_map = {}` (Orchestrator ma 0 projektów lub tylko puste listy aliases) wrapper
+deleguje do `resolver_fn`. Pytest **68 → 69 passed** (+1).
+
+**Commity**: PI `87b4966`, Car `6ef94de`.
+
 ### Z29c — code review 3 wrappera `_resolve_window_with_aliases` + 4 testów
 
 **Wynik**: 0 krytyczne / 2 średnie / 3 nice-to-have. **Wyrok: NA PÓŹNIEJ** — żadne znalezisko
