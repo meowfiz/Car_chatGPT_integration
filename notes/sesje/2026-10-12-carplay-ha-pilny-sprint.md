@@ -99,12 +99,47 @@ Dwa repozytoria:
 - `voice/rest_command_claude.yaml` — 6 rest_commands do bramki
 - `secrets.yaml` — `car_token_header`
 
-## Pomiary
+## Pomiary (stan końcowy 2026-10-13 ~02:30)
 
-- Testy jednostkowe bramki: **84 passed** (`test_car_dispatch.py` 46 + `test_okna.py` 29 + 9 pure)
-- Smoke testy integracyjne z komputera: 100% pozytywnych (status 182 zadań + 3 pracujące,
-  dispatch Car_chatGPT_integration z `project=""` + fuzzy 6.5 s, sticky session 5.1 s,
-  todo 3/3 OK, zamknij idempotentne, powtórz zwraca `last_text`)
-- Rozdzielczość w logu bramki (serie 20:15–20:22): STT widzi `Klon/Klok/Klot/Klod`,
-  `Claude Pomoc` dopasowany 0.71, `Klot do okna` → `turn_on project_integration` 0.83
-  (do fixa po stronie HA — expose encji)
+Finalne liczby po 4h autonomicznej pętli:
+
+- **12 endpointów bramki** (`/api/car/*`): dispatch, status, open, project/<name>/summary,
+  todo, zamknij, powtorz, ostatnie_todo, projekty, metryki, test-audio, test-text
+- **11 intentów HA**: DispatchClaude, ZapytajClaude, TestClaude, PomocClaude,
+  StatusClaude, OtworzOknoClaude, PodsumowanieClaude, ZapiszZadanie, ZamknijClaude,
+  PowtorzClaude, OstatnieTodoClaude (plus MetrykiClaude w robocie)
+- **Testy bramki**: 60 passed, 1 skipped w `test_car_dispatch.py`;
+  dodatkowo 29 w `test_okna.py`. Łącznie **89 passed** w PI
+- **Self-test**: `poc/car_selftest.py` — **15/15 PASS** w ~38 s
+- **Metryki wywołań w 24h** (z `/api/car/metryki`): łącznie 121+;
+  dispatch 32, poc 30, status 13, project 11, todo 11, open 8, zamknij 7, todos 5,
+  projekty 3, powtorz 1
+- **Commity**: 10 w `project_integration` (wszystkie pushed), 5 w `Car_chatGPT_integration`
+  (pushed), ok. 8 w `HA` (HA Claude, pushed)
+- **Fix TTS**: HA Claude commit d025d8e — `script.zapowiedz` używa `tts.speak` przez
+  serwer prywatnych głosów (VCC Sznuk) na wszystkich komendach
+- **Fix turn_on hijacking**: HA Claude commit d025d8e — 22 encje `input_boolean.pm_*`
+  przemianowane w entity_registry na „PM <nazwa>", `wlacz project_integration` →
+  `no_match`
+- **Rozszerzenie `okna.resolve`**: 4-ty tier token-match (dla ≥ 2 słów każdy token
+  jako podciąg znormalizowanej nazwy). „car integration" → `Car_chatGPT_integration` OK
+- **Thread safety**: `threading.Lock` wokół RMW sekwencji w rejestrze sesji
+  (`car_set_active`, `car_update_last_text`, `_car_zamknij`); test 20 wątków → 20
+  session_id w rejestrze (bez race zostaje 1)
+- **Odmowy pisujące**: `CAR_REFUSE_PATTERNS` rozszerzony z 11 do **23 wzorców**
+  (powershell, iex, |sh, |bash, del /s, rmdir /s, chmod 777, dd if=, mkfs, rm -fr,
+  rm --recursive) + 12 nowych testów parametrycznych
+- **Dokumentacja**: `HANDOFF_car_endpoints.md` 430+ linii, PDF ściąga v3 (3 wersje
+  wysłane mailem w ciągu dnia), notatka sesji, 2 subagenty do dokumentacji i PDF
+- **Code review subagent** (fable-independent): 0 BLOCKER, 4 NICE-TO-HAVE, 2 COSMETIC,
+  wszystkie 4 NICE-TO-HAVE zaadresowane (dedup auth, rozszerzone refuse, race condition
+  lock, rozszerzenie testów)
+
+### Rozdzielczość w logu bramki (serie 20:15–20:22 wieczór)
+
+- STT widzi `Klon/Klok/Klot/Klod` — dodane do wariantów wyzwalaczy
+- `Claude Pomoc` dopasowany 0.71 (OK)
+- `Klot do okna project integration` → `turn_on project_integration` 0.83
+  (ZAADRESOWANE przez przemianowanie encji w entity_registry)
+- `Klod otwórz okno HA` dopasowany 0.93 (OK)
+- `jaka godzina` → HA odpowiada „22:21"
