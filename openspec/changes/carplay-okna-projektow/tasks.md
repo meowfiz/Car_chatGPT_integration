@@ -50,6 +50,7 @@
 - [x] 2c.6 `GET /api/car/projekty?n=7` — dynamiczna lista nazw projektów do wymówienia dla PomocClaude (zamiast hardcoded). Smoke: pierwsze 5 OK
 - [x] 2c.7 `GET /api/car/metryki?h=24` — parser `voice_gateway.log`, zlicza `car-*` wpisy. Smoke: 121 wywolan w 24h, top 3: dispatch 32, poc 30, status 13
 - [x] 2c.8 Self-test rozszerzony do 15 endpointow (bylo 11): + projekty, ostatnie_todo, zamknij.pusty, powtorz.pusta. 15/15 PASS w ~38s
+- [x] 2c.9 `POST /api/car/stop` body `{pane}` — awaryjne przerwanie dispatcha z auta. `tmux send-keys C-c` do pane. Z23 w pętli profesor-student. Pomiar: 347 ms (próg 2000 ms). 1 pytest nazywający porażkę („stop bez pane zwraca 400, nie 500"), self-test rozszerzony do 17/17 (+ car.stop.brak_pane 400, + car.stop.nieistniejacy 404)
 
 ## 3. Rejestr aktywnej sesji CarPlay
 

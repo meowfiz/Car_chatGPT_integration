@@ -162,6 +162,18 @@ TESTS = [
      lambda rc, body, dt: (
          rc == 200 and body.get("outcome") == "missing",
          "pusta -> 'nie mam co powtorzyc' OK")),
+
+    ("car.stop.brak_pane", "POST", "/api/car/stop",
+     {},
+     lambda rc, body, dt: (
+         rc == 400,
+         "brak pane -> 400 OK (regula 4.4)")),
+
+    ("car.stop.nieistniejacy", "POST", "/api/car/stop",
+     {"pane": "nie-ma-takiej-sesji-" + str(int(time.time()))},
+     lambda rc, body, dt: (
+         rc == 404 and body.get("outcome") == "missing",
+         "nieistniejacy -> 404 missing")),
 ]
 
 
