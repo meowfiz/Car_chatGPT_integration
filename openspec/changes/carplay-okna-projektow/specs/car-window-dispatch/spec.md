@@ -113,6 +113,33 @@ nawzajem.
 - **THEN** bramka zwraca `{"text": "ostatnie zadania: X; Y; Z", "outcome": "sent", "items": [...]}`
   gdzie X, Y, Z to teksty z ostatnich 3 wpisów (najstarszy pierwszy w tekście)
 
+### Requirement: Endpointy użyteczne (projekty, metryki)
+
+Bramka SHALL wystawiać endpointy pomocnicze dla dynamicznej pomocy i obserwowalności:
+
+- `GET /api/car/projekty?n=<1..22>` — zwraca pierwsze N nazw projektów z `monitor_repos.env`,
+  każda przerobiona do wymówienia (zamiana `_` → spacja, lowercase). HA może używać dla
+  dynamicznej recytacji w `PomocClaude` zamiast hardcoded listy. Odpowiedź JSON
+  `{text, outcome, names, total}`.
+- `GET /api/car/metryki?h=<1..168>` — parsuje `voice_gateway.log` i zlicza wpisy
+  `car-*` z ostatnich N godzin. Zwraca JSON `{text, outcome, hours, total, counts}`.
+  `text` zawiera top-3 najpopularniejszych endpointów do wymówienia.
+
+Oba endpointy MUST wymagać `Authorization: Bearer`.
+
+#### Scenariusz: Projekty jako lista do wymówienia
+
+- **WHEN** HA GET `/api/car/projekty?n=5`
+- **THEN** bramka zwraca `{"text": "projekty do wyboru: biometrix2026, car chatgpt integration,
+  cinemacityscrapper, ha, j-photo-project.", "outcome": "sent", "names": [...], "total": 23}`
+
+#### Scenariusz: Metryki pokazują top-3
+
+- **WHEN** HA GET `/api/car/metryki?h=24`, dziennik ma wpisy `car-dispatch` 32×, `car-status` 13×,
+  `car-todo` 11× i inne
+- **THEN** bramka zwraca `{"text": "ostatnie 24 godzin: N wywolan (dispatch 32, status 13, todo 11)",
+  "total": N, "counts": {"car-dispatch": 32, ...}}`
+
 ### Requirement: Rozszerzony parser `okna.resolve` o token-match
 
 `okna.resolve(query, names)` SHALL próbować kolejno 4 tiers: (1) exact match normalized,

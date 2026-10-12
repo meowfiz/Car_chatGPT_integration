@@ -47,6 +47,9 @@
 - [x] 2c.3 Code review subagent (0 BLOCKER, 4 NICE-TO-HAVE, 2 COSMETIC): auth helper dedup (`_car_authorized`), rozszerzone `CAR_REFUSE_PATTERNS` z 11 do 23 wzorców (powershell/iex/|sh/del /s/chmod 777/dd/mkfs/rm -fr/rm --recursive) + 12 nowych testów
 - [x] 2c.4 Fix N1 race w rejestrze sesji: `threading.Lock` wokół RMW sekwencji w `car_set_active`, `car_update_last_text`, `_car_zamknij`. Test: 20 wątków set_active → 20 session_id w rejestrze. Lazy path lookup w `car_sessions_{load,save}` (default=None, re-read z CAR_SESSION_PATH)
 - [x] 2c.5 Spec rozszerzony o 2 nowe wymagania: endpointy wsparcia (todo/zamknij/powtorz/ostatnie_todo) i 4-tier `okna.resolve`
+- [x] 2c.6 `GET /api/car/projekty?n=7` — dynamiczna lista nazw projektów do wymówienia dla PomocClaude (zamiast hardcoded). Smoke: pierwsze 5 OK
+- [x] 2c.7 `GET /api/car/metryki?h=24` — parser `voice_gateway.log`, zlicza `car-*` wpisy. Smoke: 121 wywolan w 24h, top 3: dispatch 32, poc 30, status 13
+- [x] 2c.8 Self-test rozszerzony do 15 endpointow (bylo 11): + projekty, ostatnie_todo, zamknij.pusty, powtorz.pusta. 15/15 PASS w ~38s
 
 ## 3. Rejestr aktywnej sesji CarPlay
 

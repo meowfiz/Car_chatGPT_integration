@@ -1,14 +1,14 @@
 # OpenSpec task status (generated)
 
-Generated 2026-10-12 23:05. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-12 23:12. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 63/161 tasks complete across 5 changes.**
+**Overall: 66/164 tasks complete across 5 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 29/53 | 2026-10-12 |
+| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 32/56 | 2026-10-12 |
 | [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-10-05 |
 | [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-10-05 |
 | [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 7/39 | 2026-10-05 |
@@ -19,7 +19,7 @@ Generated 2026-10-12 23:05. Regenerate with `python notes/gen_openspec_status.py
 
 ## carplay-okna-projektow
 
-`29/53` tasks complete.
+`32/56` tasks complete.
 
 ### 1. PoC gating — Siri Shortcut odtwarza audio z HTTPS tailnetu w CarPlay
 
@@ -82,6 +82,9 @@ Generated 2026-10-12 23:05. Regenerate with `python notes/gen_openspec_status.py
 | [x] | 2c.3 Code review subagent (0 BLOCKER, 4 NICE-TO-HAVE, 2 COSMETIC): auth helper dedup (`_car_authorized`), rozszerzone `CAR_REFUSE_PATTERNS` z 11 do 23 wzorców (powershell/iex/\|sh/del /s/chmod 777/dd/mkfs/rm -fr/rm --recursive) + 12 nowych testów |
 | [x] | 2c.4 Fix N1 race w rejestrze sesji: `threading.Lock` wokół RMW sekwencji w `car_set_active`, `car_update_last_text`, `_car_zamknij`. Test: 20 wątków set_active → 20 session_id w rejestrze. Lazy path lookup w `car_sessions_{load,save}` (default=None, re-read z CAR_SESSION_PATH) |
 | [x] | 2c.5 Spec rozszerzony o 2 nowe wymagania: endpointy wsparcia (todo/zamknij/powtorz/ostatnie_todo) i 4-tier `okna.resolve` |
+| [x] | 2c.6 `GET /api/car/projekty?n=7` — dynamiczna lista nazw projektów do wymówienia dla PomocClaude (zamiast hardcoded). Smoke: pierwsze 5 OK |
+| [x] | 2c.7 `GET /api/car/metryki?h=24` — parser `voice_gateway.log`, zlicza `car-*` wpisy. Smoke: 121 wywolan w 24h, top 3: dispatch 32, poc 30, status 13 |
+| [x] | 2c.8 Self-test rozszerzony do 15 endpointow (bylo 11): + projekty, ostatnie_todo, zamknij.pusty, powtorz.pusta. 15/15 PASS w ~38s |
 
 ### 3. Rejestr aktywnej sesji CarPlay
 
