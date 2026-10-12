@@ -1,5 +1,15 @@
 # START — Car_chatGPT_integration
 
+## Ostatnia sesja — 2026-10-13 noc (sesja 5 kontynuacja: Z23-Z25 dojrzałość i mutation test)
+
+**Noc po sprincie HA/bramka**: Z23 zbudowany `/api/car/stop`, Z24 pomiar e2e x10 **ZALICZONY**
+(mediana 309.5 ms, 10/10 send-keys, 10/10 HTTP), Z25 code review 2 + mutation test —
+**NEGATYW hipotezy** (ZASADY 5.8): pytest `test_stop_bez_pane_...` przeszedł mimo mutacji,
+ale integration self-test ZŁAPAŁ. Wniosek: reguła 4.4 spełniona tylko dla integracji,
+nie dla pytestu jednostkowego. **Co dalej (OpenSpec)**: KRYT 1 „WYMAGA PROJEKTU" (semantyka
+wielo-okienna + `claude -p` signal), KRYT 2 „FIX lokalny" (`outcome="error"` zamiast
+`"timeout"` dla rc!=0). Oba w tasks.md, HANDOFF_voice_gateway.md.
+
 ## Ostatnia sesja — 2026-10-12 (sesja 5: carplay-okna-projektow + autonomiczny sprint HA/bramka)
 
 - **Zmiana openspec `carplay-okna-projektow`** utworzona i w dużej części zrealizowana: wejście

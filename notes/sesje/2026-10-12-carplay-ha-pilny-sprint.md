@@ -135,6 +135,80 @@ Finalne liczby po 4h autonomicznej pętli:
   wszystkie 4 NICE-TO-HAVE zaadresowane (dedup auth, rozszerzone refuse, race condition
   lock, rozszerzenie testów)
 
+### Dojrzałość endpointów Z23–Z25 (druga połowa pętli)
+
+**Z23** — `POST /api/car/stop` zbudowany, pomiar 1-shot 347 ms, test nazywający porażkę (ZASADY 4.4),
+self-test 15→17 PASS. Task 2c.9.
+
+**Z24** — pomiar e2e `/stop` x 10 prób z pecetu (symulacja telefonu, user offline).
+Prerejestracja w commit 92610a0 PRZED pomiarem (ZASADY 3.3). Wynik: **ZALICZONE 3/3 miar**:
+- Miara 1 latencja [ms]: min 298.2 / median 309.5 / p90 325.4 / max 326.2 (progi 1500/2500)
+- Miara 2 skuteczność `send-keys`: 10/10 `capture-pane` zmienione
+- Miara 3 HTTP 200: 10/10 (zero timeout / 5xx)
+Wariancja 28 ms rozstępu. Zapis `project_files/run_files/stop_e2e_2026-10-12-233411.jsonl`.
+NIE uprawnia do: obciążenia (10 prób), każdego pane (1 pane), LTE OK (symulacja z pecetu).
+
+**Z25** — Code review 2 + mutation test (ZASADY 4.4 druga połowa). Prerejestracja commit 4f5e54f.
+
+- **M1 Code review 2 KRYT 1**: `send-keys -t =<session>:` idzie do **aktywnego pane sesji**, nie
+  konkretnego. Przy sesji wielo-okiennej Ctrl-C poleci do złego pane. Dodatkowo `claude -p` ma
+  własny signal handler. Text „stopnieto X" kłamie. **Decyzja projektowa, wymaga nowego
+  proposal** (zapisane w `notes/HANDOFF_voice_gateway.md`, zadanie „WYMAGA PROJEKTU" w tasks.md).
+- **M1 KRYT 2**: `outcome="timeout"` dla `rc != 0` bez timeoutu. Fałszywe mapowanie klasy błędu.
+  Fix lokalny 5 min; nie zrobiony w Z25 na decyzję profesora (nie poprawiać przy okazji).
+  Zapisane w tasks.md jako „FIX lokalny z warunkiem akceptacji".
+- **M2 Mutation test NEGATYW** (ZASADY 5.8): `test_stop_bez_pane_zwraca_400_nie_500` **PRZESZEDŁ**
+  mimo mutacji `rc == 0` → `rc != 0`. Przyczyna: test pokrywa branch `brak pane → 400`
+  (pre-send-keys), mutacja jest post-send-keys. **ALE** self-test live **ZŁAPAŁ** mutację
+  (zwrócił `outcome="timeout"` zamiast `"sent"`). **Wniosek**: ZASADY 4.4 spełnione dla
+  integration self-test, nie dla pytest jednostkowego. Pytest nie pokrywa sukces-branche
+  semantyki `send-keys`.
+- **M3 Kod przywrócony**: `git diff tools/voice_gateway.py` pusty po przywróceniu mutacji
+  (zweryfikowane mechanicznie).
+
+**Własne błędy Claude'a w sesji** (ZASADY 1.3):
+
+- Pytest `test_stop_bez_pane_...` obiecywał nazwą więcej niż pokrywał (reguła 4.4 spełniona
+  nominalnie, nie merytorycznie). Znalazło się TYLKO dlatego, że mutation test uruchomiono
+  z integracją self-testową równolegle. Lekcja: nazwa testu musi odpowiadać faktycznemu
+  pokryciu (branch pre- vs post-send-keys to różne rzeczy).
+- Pomiar 1-shot (Z23 pomiar 347 ms) nie jest dystrybucją — ZASADY 5.3 „kontrola odtworzenia
+  przed walidacją" była ignorowana do Z24 (10 prób). Profesor to wyłapał.
+- Początkowo odpaliłem pętlę profesor-student bez Agenta profesora (tylko register). Dopiero
+  po hook feedback „nie kończ, melduj profesorowi" uruchomiłem Agent model=opus jako profesor.
+  Lekcja: skill mówi profesor Z model=fable, ale Agent tool wspiera tylko sonnet/opus/haiku —
+  trzeba było zapisać odstępstwo w Z0 od razu, nie czekać do hook.
+
+### Audyt pokrycia OpenSpec (Z22)
+
+Inwentaryzacja z `voice_gateway.py` (grep na `path == "/api/car/"`): **znaleziono 12 endpointów**
+(zgodnie z planem). OpenSpec changes dotykające `/api/car/`: **1** (`carplay-okna-projektow`).
+
+| endpoint | handler | zmiana OpenSpec | pokrycie | notatka |
+|---|---|---|---|---|
+| GET /api/car/status | `_car_status` | carplay-okna-projektow | pełne | spec „Rozszerzone endpointy" + task 2a.1 + 2 scenariusze |
+| POST /api/car/open | `_car_open` | carplay-okna-projektow | pełne | spec + task 2a.2 + scenariusz „Open idempotentny" |
+| GET /api/car/project/<name>/summary | `_car_project_summary` | carplay-okna-projektow | pełne | spec + task 2a.3 + scenariusz „Token-match" |
+| POST /api/car/dispatch | `_car_dispatch` | carplay-okna-projektow | pełne | spec „Endpoint HTTP dyspozytora" + tasks 2.1–2.8 + 4 scenariusze |
+| POST /api/car/todo | `_car_todo` | carplay-okna-projektow | pełne | spec „Endpointy wsparcia głosowego" + task 2b.1 |
+| POST /api/car/zamknij | `_car_zamknij` | carplay-okna-projektow | pełne | spec + task 2b.2 + 2 scenariusze (kasuje, idempotentny) |
+| POST /api/car/powtorz | `_car_powtorz` | carplay-okna-projektow | pełne | spec + task 2b.3 + scenariusz „Dispatch zapisuje last_text" |
+| GET /api/car/ostatnie_todo | `_car_ostatnie_todo` | carplay-okna-projektow | pełne | spec + task 2c.1 + scenariusz „Ostatnie TODO n=3" |
+| GET /api/car/projekty | `_car_projekty` | carplay-okna-projektow | pełne | spec „Endpointy użyteczne" + task 2c.6 + scenariusz |
+| GET /api/car/metryki | `_car_metryki` | carplay-okna-projektow | pełne | spec „Endpointy użyteczne" + task 2c.7 + scenariusz „Metryki top-3" |
+| GET /api/car/test-audio | branch w `do_GET` | carplay-okna-projektow | pełne | spec „Diagnostyczny" + tasks 1.1, 1.2, 7.1 (usunięcie) |
+| GET /api/car/test-text | branch w `do_GET` | carplay-okna-projektow | pełne | spec + task 7.1 (usunięcie po PoC) |
+
+**Rozkład**: **12 pełne / 0 częściowe / 0 brak**.
+
+**Historia**: `/api/car/command` (oryginalny PoC) **zastąpiony przez `/api/car/dispatch`** w D10
+design.md po pomiarze 2026-10-12 (Siri Shortcut odrzucony, HA Assist zastępuje). W proposal.md
+i design.md zostaje jako dziedzictwo — nie liczymy jako „produkcyjny" endpoint.
+
+**Wniosek**: wszystkie 12 produkcyjnych endpointów ma pełne pokrycie OpenSpec (proposal → design
+→ spec → tasks). Nie trzeba zakładać nowej zmiany dla samej dokumentacji — `carplay-okna-projektow`
+pokrywa cały zestaw.
+
 ### Rozdzielczość w logu bramki (serie 20:15–20:22 wieczór)
 
 - STT widzi `Klon/Klok/Klot/Klod` — dodane do wariantów wyzwalaczy

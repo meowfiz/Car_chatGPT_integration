@@ -1,14 +1,14 @@
 # OpenSpec task status (generated)
 
-Generated 2026-10-12 23:12. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-12 23:43. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 66/164 tasks complete across 5 changes.**
+**Overall: 71/172 tasks complete across 5 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 32/56 | 2026-10-12 |
+| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 37/64 | 2026-10-12 |
 | [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-10-05 |
 | [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-10-05 |
 | [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 7/39 | 2026-10-05 |
@@ -19,7 +19,7 @@ Generated 2026-10-12 23:12. Regenerate with `python notes/gen_openspec_status.py
 
 ## carplay-okna-projektow
 
-`32/56` tasks complete.
+`37/64` tasks complete.
 
 ### 1. PoC gating — Siri Shortcut odtwarza audio z HTTPS tailnetu w CarPlay
 
@@ -85,6 +85,14 @@ Generated 2026-10-12 23:12. Regenerate with `python notes/gen_openspec_status.py
 | [x] | 2c.6 `GET /api/car/projekty?n=7` — dynamiczna lista nazw projektów do wymówienia dla PomocClaude (zamiast hardcoded). Smoke: pierwsze 5 OK |
 | [x] | 2c.7 `GET /api/car/metryki?h=24` — parser `voice_gateway.log`, zlicza `car-*` wpisy. Smoke: 121 wywolan w 24h, top 3: dispatch 32, poc 30, status 13 |
 | [x] | 2c.8 Self-test rozszerzony do 15 endpointow (bylo 11): + projekty, ostatnie_todo, zamknij.pusty, powtorz.pusta. 15/15 PASS w ~38s |
+| [x] | 2c.9 `POST /api/car/stop` body `{pane}` — awaryjne przerwanie dispatcha z auta. `tmux send-keys C-c` do pane. Z23 w pętli profesor-student. Pomiar: 347 ms (próg 2000 ms). 1 pytest nazywający porażkę („stop bez pane zwraca 400, nie 500"), self-test rozszerzony do 17/17 (+ car.stop.brak_pane 400, + car.stop.nieistniejacy 404) |
+| [ ] | 2c.10 **PREREJESTRACJA Z24** (przed uruchomieniem skryptu, ZASADY 3.3): pomiar e2e `/api/car/stop` 10 prób z pecetu przez adres tailnetowy (symulacja telefonu bo user offline). **Hipoteza negatywna**: mediana > 3000 ms lub ≥ 1 timeout/5xx w 10 → endpoint nie nadaje się do auta, wracamy do architektury. **Hipoteza pozytywna**: mediana ≤ 1500 ms, p90 ≤ 2500 ms, 10/10 OK. **3 miary**: (1) latencja e2e per próba z zegarem bramki — min/median/p90/max; (2) skuteczność `tmux send-keys`: `capture-pane` przed/po, zmiana ostatniej linii = sukces, próg 10/10; (3) status HTTP: 10×200, zero 4xx/5xx, próg 10/10. **Liczba porównań: 1** (ścieżka główna /stop, bez wariantów). Konfuzje: sieć tailnet (symulacja ≠ telefon LTE), pane bez aktywnego procesu (symulowany sleep ≠ Claude Code). Wynik NIE uprawnia do: „działa pod obciążeniem" (10 prób, nie 1000), „na każdym pane" (1 pane, nie 22), „sieć LTE OK" (symulacja z pecetu). |
+| [x] | 2c.10 PREREJESTRACJA Z24 commitowana przed pomiarem 23:34 UTC |
+| [x] | 2c.11 Z24 pomiar: `poc/stop_e2e_pomiar.py` 10 prób, zapis `project_files/run_files/stop_e2e_2026-10-12-233411.jsonl`. Wynik: **ZALICZONE 3/3 miar**. Miara 1: min 298.2 / median 309.5 / p90 325.4 / max 326.2 ms (progi 1500/2500). Miara 2: 10/10 `send-keys` skuteczne (capture-pane zmiana). Miara 3: 10/10 HTTP 200. Wynik NIE uprawnia do: obciążenia (10 prób, nie 1000), każdego pane (1 pane), LTE OK (symulacja z pecetu — ta sama sieć co bramka) |
+| [x] | 2c.12 **PREREJESTRACJA Z25** w commit 4f5e54f (przed mutacją). ZASADY 3.3 zachowane |
+| [x] | 2c.13 Z25 wynik: **NEGATYW hipotezy** (ZASADY 5.8). Pytest `test_stop_bez_pane_zwraca_400_nie_500` **przeszedł mimo mutacji** `rc == 0` → `rc != 0`. Przyczyna: test pokrywa branch `brak pane → 400` (pre-send-keys), mutacja jest post-send-keys. **ALE** integration test (self-test live) **złapał mutację** — zwrócił `outcome="timeout"` zamiast `"sent"`. Wniosek: ZASADY 4.4 „testy sprawdzone mutacją" spełnione dla self-testu live, **nie dla pytest**. Pytest nie pokrywa sukces-branche semantyki `send-keys`. Kod przywrócony, `git diff` pusty (zweryfikowane) |
+| [ ] | **WYMAGA PROJEKTU — nie fix in-place** (KRYT 1 z code review 2 Z25): semantyka `/api/car/stop` dla sesji wielo-okiennych i `claude -p` signal handler. `send-keys -t =session:` idzie do aktywnego pane, nie konkretnego. `claude -p` ma własny signal handler — pojedyncze C-c czyści prompt, nie zabija generowania. Text „stopnieto X" kłamie. Decyzja projektowa (nowy proposal/design, nie bugfix). Zapisane w `notes/HANDOFF_voice_gateway.md` |
+| [ ] | **FIX lokalny z warunkiem akceptacji** (KRYT 2 z code review 2 Z25): `_car_stop` ustawia `outcome="timeout"` gdy `rc != 0` — fałszywe mapowanie klasy błędu. Zmiana: `outcome="error"` dla tego branche; enum spec rozszerzony o `error`. **Warunek akceptacji** (ZASADY 4.4 druga połowa): nowy pytest nazywający porażkę („send-keys rc!=0 bez timeoutu zwraca outcome='error', nie 'timeout'"), uruchomić z mutacją `"error" → "timeout"` — test MUSI PAŚĆ |
 
 ### 3. Rejestr aktywnej sesji CarPlay
 
