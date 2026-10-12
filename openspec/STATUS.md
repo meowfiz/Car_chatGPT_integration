@@ -1,14 +1,14 @@
 # OpenSpec task status (generated)
 
-Generated 2026-10-12 22:39. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-12 22:50. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 53/151 tasks complete across 5 changes.**
+**Overall: 58/156 tasks complete across 5 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 19/43 | 2026-10-12 |
+| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 24/48 | 2026-10-12 |
 | [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-10-05 |
 | [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-10-05 |
 | [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 7/39 | 2026-10-05 |
@@ -19,7 +19,7 @@ Generated 2026-10-12 22:39. Regenerate with `python notes/gen_openspec_status.py
 
 ## carplay-okna-projektow
 
-`19/43` tasks complete.
+`24/48` tasks complete.
 
 ### 1. PoC gating — Siri Shortcut odtwarza audio z HTTPS tailnetu w CarPlay
 
@@ -62,6 +62,16 @@ Generated 2026-10-12 22:39. Regenerate with `python notes/gen_openspec_status.py
 | [x] | 2a.2 `POST /api/car/open` body `{project}` — subprocess do `tools/okno.py`, idempotentne, zwraca „otwieram X" lub „okno X juz dziala". Smoke: `voice` otwarte w 5.5 s |
 | [x] | 2a.3 `GET /api/car/project/<name>/summary` — fuzzy przez `okna.resolve`, agreguje rekord z `/api/state`. Smoke: `car integration` → `Car_chatGPT_integration`, `HA` → stan 2 z 19 otwartych |
 | [x] | 2a.4 **4-ty tier w `okna.resolve`: token-match** — gdy query ma ≥ 2 słowa, dopasowanie jeśli każdy token jest podciągiem znormalizowanej nazwy. Potrzebne dla „car integration" vs `Car_chatGPT_integration`. 4 nowe testy przeszły, cała suita 74/75 |
+
+### 2b. Rozszerzenia głosowe (sprint 2026-10-12 wieczór)
+
+| Done | Task |
+|---|---|
+| [x] | 2b.1 `POST /api/car/todo` body `{text, project?, session_id?}` — zapisuje TODO głosem do `~/.claude/carplay_todos.jsonl`. Project z sticky jeśli puste. 3 scenariusze smoke |
+| [x] | 2b.2 `POST /api/car/zamknij` body `{session_id}` — kasuje sticky, zwraca „zamkniete bylo X" lub „nie bylo aktywnej sesji" |
+| [x] | 2b.3 `POST /api/car/powtorz` body `{session_id}` — powtarza ostatnie Glosowo. Rejestr sesji trzyma `last_text`, dispatch aktualizuje |
+| [x] | 2b.4 Pure helpery: `build_car_status_text`, `build_car_project_text`, `car_update_last_text`, `car_get_last_text`. 9 nowych testów (razem 47 passed, 1 skipped) |
+| [x] | 2b.5 Dokumentacja: `notes/HANDOFF_car_endpoints.md` (337 linii) — kontrakt, autoryzacja, rejestr sesji, odmowy, 4-tier resolver, wzorzec rest_command dla HA |
 
 ### 3. Rejestr aktywnej sesji CarPlay
 

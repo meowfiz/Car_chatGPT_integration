@@ -79,14 +79,174 @@ def build_pdf(out_path: str) -> None:
 
     # Tytul
     pdf.set_font(fam, "B", 16)
-    pdf.cell(0, 10, t("Sciaga - test CarPlay w aucie"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 10, t("Sciaga - CarPlay v2 (komendy glosowe)"),
+             new_x="LMARGIN", new_y="NEXT")
     pdf.set_font(fam, "", 10)
     pdf.cell(0, 6, t("Zmiana openspec: carplay-okna-projektow. Data: 2026-10-12."),
              new_x="LMARGIN", new_y="NEXT")
     pdf.ln(4)
 
+    # ====================================================================
+    # NOWA SEKCJA: komendy glosowe po zdanym PoC
+    # ====================================================================
+    pdf.set_font(fam, "B", 14)
+    pdf.cell(0, 9, t("Komendy glosowe (po zdanym PoC)"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "PoC audio zdany: HA Assist przez CarPlay dowozi odpowiedz Twoim glosem (Sznuk).\n"
+        "Ponizej wlasciwe komendy funkcjonalne pietra sterowania. Wszystkie zaczynaja sie\n"
+        "od slowa 'Claude' (wake word parsera). Mowisz do HA Assist (ikona HA w CarPlay)."
+    ))
+    pdf.ln(2)
+
+    # 1. Ping petli
+    pdf.set_font(fam, "B", 11)
+    pdf.cell(0, 7, t("1. Ping petli"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "Co mowisz: 'Claude test' / 'Claude ping' / 'Claude sprawdz'.\n"
+        "Co uslyszysz: 'petla dziala'.\n"
+        "Co testuje: cala sciezka telefon -> HA -> parser -> glos w aucie."
+    ))
+    pdf.ln(2)
+
+    # 2. Menu
+    pdf.set_font(fam, "B", 11)
+    pdf.cell(0, 7, t("2. Menu glosowe"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "Co mowisz: 'Claude pomoc' / 'Claude menu' / 'Claude sciaga' / 'Claude help'.\n"
+        "Co uslyszysz: recytacje listy projektow i form fraz, ktorych mozesz uzyc.\n"
+        "Kiedy uzyc: nie pamietasz nazwy projektu albo skladni polecenia."
+    ))
+    pdf.ln(2)
+
+    # 3. Status agregat
+    pdf.set_font(fam, "B", 11)
+    pdf.cell(0, 7, t("3. Status - agregat wszystkich projektow"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "Co mowisz: 'Claude status' / 'Claude stan' / 'Claude co slychac' / 'Claude raport'.\n"
+        "Co uslyszysz: ile projektow, ile pracuje teraz, ile otwartych zadan,\n"
+        "ile commitow niewypchnietych."
+    ))
+    pdf.ln(2)
+
+    # 4. Otworz okno
+    pdf.set_font(fam, "B", 11)
+    pdf.cell(0, 7, t("4. Otworz okno projektu"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "Co mowisz: 'Claude otworz <projekt>' / 'Claude odpal <projekt>' /\n"
+        "   'Claude uruchom <projekt>'.\n"
+        "Co uslyszysz: 'okno <projekt> otwarte' albo 'okno <projekt> juz dziala'.\n"
+        "Efekt: w tmux (cli_bridge) powstaje sesja Claude Code dla tego projektu."
+    ))
+    pdf.ln(2)
+
+    # 5. Podsumowanie
+    pdf.set_font(fam, "B", 11)
+    pdf.cell(0, 7, t("5. Podsumowanie konkretnego projektu"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "Co mowisz: 'Claude podsumowanie <projekt>' / 'Claude co z <projekt>' /\n"
+        "   'Claude jak idzie <projekt>' / 'Claude stan <projekt>'.\n"
+        "Co uslyszysz: nad czym projekt pracuje, ile zadan zrobionych z ilu."
+    ))
+    pdf.ln(2)
+
+    # 6. Do okna
+    pdf.set_font(fam, "B", 11)
+    pdf.cell(0, 7, t("6. Wyslij polecenie do okna projektu"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "Co mowisz: 'Claude do okna <projekt>, <polecenie>' /\n"
+        "   'Claude w oknie <projekt>, <polecenie>'.\n"
+        "Przyklady:\n"
+        "   'Claude do okna car integration, pokaz tasks'\n"
+        "   'Claude w oknie HA, co z sentences'\n"
+        "Efekt: polecenie trafia do dzialajacego Claude Code w sesji tmux projektu."
+    ))
+    pdf.ln(2)
+
+    # 7. Kontynuuj
+    pdf.set_font(fam, "B", 11)
+    pdf.cell(0, 7, t("7. Kontynuacja bez powtarzania nazwy (sticky, 10 min)"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "Co mowisz: 'Claude kontynuuj <polecenie>' / 'Claude dalej <polecenie>'.\n"
+        "Efekt: polecenie leci do ostatnio uzywanego okna, jesli minelo < 10 min.\n"
+        "Po 10 min musisz znow nazwac projekt ('Claude do okna X, ...')."
+    ))
+    pdf.ln(2)
+
+    # 8. TODO
+    pdf.set_font(fam, "B", 11)
+    pdf.cell(0, 7, t("8. Zapisz zadanie / TODO"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "Co mowisz: 'Claude zapisz zadanie <tekst>' / 'Claude dodaj todo <tekst>' /\n"
+        "   'Claude notatka <tekst>'.\n"
+        "Efekt: wpis trafia do ~/.claude/carplay_todos.jsonl (data + tekst)."
+    ))
+    pdf.ln(2)
+
+    # Nazwy projektow do wymowienia
     pdf.set_font(fam, "B", 12)
-    pdf.cell(0, 8, t("Co masz zrobic:"), new_x="LMARGIN", new_y="NEXT")
+    pdf.cell(0, 8, t("Nazwy projektow latwe do wymowienia (wybor):"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "- 'car integration' (ten projekt)\n"
+        "- 'project integration' (meta-projekt, spina wszystko)\n"
+        "- 'HA' (dodatek Home Assistant)\n"
+        "- 'publikacja' (artykul naukowy)\n"
+        "- 'biometrix'\n"
+        "- 'dashboard M'\n"
+        "- 'VCC' (glos w aucie)\n"
+        "Pelna lista 22 projektow -> powiedz 'Claude menu'."
+    ))
+    pdf.ln(2)
+
+    # Oczekiwana forma odpowiedzi
+    pdf.set_font(fam, "B", 12)
+    pdf.cell(0, 8, t("Jak oceniac dzialanie:"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "- odpowiedz przychodzi Twoim glosem (Sznuk) przez glosnik auta\n"
+        "- pelne zdanie, bez urywania\n"
+        "- opoznienie do ~3 s przy pingu, do ~10 s przy komendach do okna\n"
+        "- gdy parser nie zrozumie -> 'nie rozumiem, powiedz menu'"
+    ))
+    pdf.ln(6)
+
+    # ====================================================================
+    # HISTORIA: PoC serie A/B/C (zdane, zostaje jako diagnostyka)
+    # ====================================================================
+    pdf.set_font(fam, "B", 14)
+    pdf.cell(0, 9, t("Historia PoC - serie A/B/C (zdane, diagnostyka)"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "Oryginalny protokol testu z pierwszej sesji. PoC zdany - HA Assist (seria C)\n"
+        "dowozi odpowiedz Twoim glosem przez glosnik auta. Zostawione jako diagnostyka,\n"
+        "gdy nowe komendy nie dzialaja: wraca sie tutaj zeby odciac warstwe (audio stack\n"
+        "/ Shortcut / HA pipeline)."
+    ))
+    pdf.ln(2)
+
+    pdf.set_font(fam, "B", 12)
+    pdf.cell(0, 8, t("Jak odtworzyc PoC:"), new_x="LMARGIN", new_y="NEXT")
     pdf.set_font(fam, "", 10)
     pdf.multi_cell(0, 6, t(
         "1. Auto na postoju, silnik na, telefon podpiety do CarPlay USB.\n"

@@ -1,5 +1,32 @@
 # START — Car_chatGPT_integration
 
+## Ostatnia sesja — 2026-10-12 (sesja 5: carplay-okna-projektow + autonomiczny sprint HA/bramka)
+
+- **Zmiana openspec `carplay-okna-projektow`** utworzona i w dużej części zrealizowana: wejście
+  głosowe do rozmowy z projektami przez CarPlay. Pierwotna ścieżka Siri Shortcut porzucona
+  (D10 w design.md) — Siri zamyka sesję audio po ~1 s. **Wejście docelowe: HA Assist w CarPlay**
+  (kafelek Quick Access). Potwierdzone na postoju: twój głos Sznuk gra pełne zdanie.
+- **Bramka (`project_integration/tools/voice_gateway.py`): 8 endpointów `/api/car/*`**:
+  `dispatch`, `status`, `open`, `project/<name>/summary`, `todo`, `zamknij`, `powtorz`,
+  `test-audio`/`test-text` (diagnostyka). Rejestr sticky session z TTL 600 s + `last_text`.
+  Odmowy pisujące (`git push`, `rm -rf`, …) po stronie bramki. **84 testów passed**.
+- **HA (`D:\claude_projekty\HA\voice\`): 9 intentów głosowych** (DispatchClaude, PomocClaude,
+  TestClaude, StatusClaude, OtworzOknoClaude, PodsumowanieClaude, ZapiszZadanie, ZamknijClaude,
+  PowtorzClaude), 6 rest_commands, warianty wyzwalaczy (klod/klot/klon/klok/klaud…).
+  **TTS fix**: `script.zapowiedz` używa `tts.speak` z VCC Sznukiem (commit HA d025d8e).
+- **Dokumentacja**: `notes/HANDOFF_car_endpoints.md` (337 linii kontraktu HTTP),
+  `notes/HANDOFF_carplay_okna.md` (Shortcut A/B/C + tabele PoC), PDF ściąga v2 z 8 kategoriami
+  komend (wysłana mailem), `poc/car_test_watch.py` do pomiaru z komputera.
+- **Rozszerzenie `okna.resolve`**: 4-ty tier **token-match** — dla ≥ 2 słów każdy token jako
+  podciąg znormalizowanej nazwy. „car integration" → `Car_chatGPT_integration` działa.
+- **Do zweryfikowania przez użytkownika w aucie**: wszystkie 9 komend głosowych, głównie
+  czy TTS brzmi Sznukiem wszędzie i czy `turn_on` hijacking rozwiązany (HA Claude w robocie
+  nad expose encji).
+- **Co pozostaje**: pomiar serii C w aucie wg prerejestracji (≥ 10 prób, mediana ≤ 20 s),
+  usunięcie diagnostycznych `/api/car/test-*` po archiwizacji zmiany.
+
+Szczegóły: `notes/sesje/2026-10-12-carplay-ha-pilny-sprint.md`.
+
 ## Ostatnia sesja — 2026-09-22 (sesja 4: weryfikacja ChatGPT Voice + wariant „Monitor GPT")
 
 - **PDF `podsumowanie_voice_claude_carplay.pdf` zweryfikowany u źródeł — jego rekomendacja nie
