@@ -110,6 +110,18 @@
   - **DECYZJA**: NICE #5 **pozostaje nie-priorytetem**, ale z innego powodu niż pomiar 1/2 sugerował. Nie dlatego że „0,35% cyklu to szum" (to był pomiar 1/2), ale dlatego że **wrapper nie ma jeszcze żadnych rzeczywistych wywołań** — do czasu podpięcia pod `_car_dispatch` + przynajmniej 2 tygodnie ruchu z auta/HA pytanie o TTL jest przedwczesne.
   - **Warunek powrotu do NICE #5**: podpięcie wrappera do `_car_dispatch` (iteracja 2 po pomiarze serii C w aucie) + log rozróżniający hit vs resolver_fn (dodać `log("car-aliases", "hit cache q=%s" % q)` i `log("car-aliases", "resolver_fn q=%s" % q)` w `_resolve_window_with_aliases`) + 14 dni ruchu + powtórzyć pomiar 2/2. Dopiero wtedy liczba jest interpretowalna wobec progu < 10/dobę.
 
+- [ ] 2c.23 **PREREJESTRACJA implementacji NICE #5** (dla przyszłej sesji, po powrocie do NICE #5 wg warunku w 2c.22): wariant decyzyjny implementacji po dopełnieniu warunku powrotu (podpięcie + log rozróżniający + 14 dni ruchu + powtórzony pomiar 2/2 > progu).
+  - **Hipoteza**: endpoint `POST /api/car/aliases/invalidate` z Bearer tokenem wywołany po `sync_aliases.py --push` eliminuje okno niespójności cache dla 100% zapytań po edycji (max latencja: 1 trafienie HTTP localhost ≤ 400 ms wg Z24 p90).
+  - **Dane testu** (po implementacji, osobny pomiar):
+    - **Zbiór**: 10 symulowanych edycji aliasów przez `sync_aliases.py` (kazda inna fraza → inny alias → ta sama nazwa projektu). Po każdej edycji 1 zapytanie `_car_cached_aliases` w ciągu 1 s.
+    - **Statystyka**: ile z 10 zapytań zwraca **nowy** alias (po edycji, przed `invalidate`), ile **nowy** (po `invalidate`). Próg: ≥ 9/10 nowych po `invalidate`, ≤ 1/10 bez `invalidate` (bo pierwsze zapytanie w 10 min oknie jeszcze trafia w cache z poprzedniej sesji).
+  - **Alternatywa (odrzucona na starcie)**: ETag/If-None-Match w `GET /api/projects` — wymaga zmiany Orchestratora (`project_integration/server/app.py`), zwiększa zakres o drugi serwer; **invalidate endpoint** jest **lokalny** w bramce i nie wymaga ingerencji w inne komponenty. ZASADY 4.9 — mniej semantyki, o którą nikt nie prosi.
+  - **Warunek NEGATYWU** (ZASADY 3.3): jeśli `_car_cached_aliases` zostaje przy 100% hit cache nawet po `invalidate` → implementacja ma błąd (prawdopodobnie TTL check nie resetuje się), przerywam i wrapper wraca do poprzedniej wersji; nie strojam.
+  - **Czego wynik NIE uprawnia**: nie uprawnia do opinii o skalowalności (10 edycji ≠ 10 000); nie bada wyścigu dwóch równoległych `invalidate`; nie uprawnia do automatycznej invalidacji przy każdym PUT w Orchestratorze (to wymaga webhook, osobne zadanie).
+  - **Pochodzenie**: ten wpis commit `TBD-przyszłej-sesji` jako prerejestracja; pomiar faktyczny z nagłówkiem (commit + SHA-256 pliku logu + zakres + komenda).
+
+- [ ] 2c.24 **PREREJESTRACJA iteracji 2 wrappera** (podpięcie `_resolve_window_with_aliases` do `_car_dispatch`): warunkowa wobec pomiaru serii C PoC w aucie (grupa 6 w tasks.md). Hipoteza, próg, warunek NEGATYWU zapisane w osobnej turze po pomiarze serii C — bez niego nie wiemy, czy dyspatch głosowy w ogóle działa z realnymi frazami. Nie planujemy teraz, bo seria C jest `blocked` na user offline.
+
 - [x] 2c.20 **Z29a WYNIK** (noc 2026-10-13): **4/4 mutacji wykrytych**, próg spełniony.
   - M1 (wyłącz mapowanie) → `test_wrapper_aliasow_mapuje_fraze_do_kanonu` **FAILED**
   - M2 (zepsuj fallback) → `test_wrapper_aliasow_fallback_do_resolver_dla_fraz_spoza` **FAILED**
