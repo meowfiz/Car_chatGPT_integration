@@ -179,6 +179,80 @@ NIE uprawnia do: obciążenia (10 prób), każdego pane (1 pane), LTE OK (symula
   Lekcja: skill mówi profesor Z model=fable, ale Agent tool wspiera tylko sonnet/opus/haiku —
   trzeba było zapisać odstępstwo w Z0 od razu, nie czekać do hook.
 
+### Z29b — diagnoza fallującego testu w PI (noc 2026-10-13, nie naprawa, ZASADY 3.1)
+
+Pełna suita `pack/tests` i reszta w `project_integration` ujawniła 1 fail:
+
+**Plik**: `project_integration/pack/tests/test_voice_tts_routing.py:376`
+
+**Co pada**: `_post(url + "\voice\ask-text", {"text": "..."})` — `TimeoutError: timed out`
+po 10 s w `recv_into`.
+
+**Przyczyna wyjściowa** (literówka): Python interpretuje escape sequences `\v` i `\a`
+w stringu bez prefiksu `r"..."`. W rezultacie URL zawiera `\x0b` (vertical tab) i `\x07`
+(bell) zamiast `/voice/ask-text`. HTTP server nie rozpoznaje ścieżki, zwisa z recv_into,
+pytest timeout.
+
+**Werdykt**: osobne zadanie — nie moja iteracja (ZASADY 3.1, osobny temat = osobna zmiana).
+Fix jest jednolinijkowy (`"\voice\ask-text"` → `"/voice/ask-text"`), ale nie wchodzi w zakres
+Z29. Zapisane jako TODO do rozwiązania w kolejnej sesji.
+
+**Status**: fail siedzi w HEAD przed Z28 (zweryfikowane — mój commit cee5b32 nie
+dotknął `pack/tests/test_voice_tts_routing.py`). Nie regresja Z28.
+
+### Z29a — mutation test wrappera `_resolve_window_with_aliases` (ZASADY 4.4 druga połowa)
+
+Prerejestracja Z29a w commit 49e0d2a (ZASADY 3.3 przed mutacjami).
+
+**4 mutacje × 4 testy, próg 4/4** (ZASADY 5.4 — dokładnie 4, nie więcej):
+
+| mutacja | gałąź w kodzie | test | wynik |
+|---|---|---|---|
+| M1 | wyłącz mapowanie (zawsze `resolver_fn`) | `test_wrapper_aliasow_mapuje_fraze_do_kanonu` | **FAILED** |
+| M2 | fallback `[]` dla fraz spoza aliases | `test_wrapper_aliasow_fallback_do_resolver_dla_fraz_spoza` | **FAILED** |
+| M3 | pusty cache → `[]` zamiast fallback | `test_wrapper_aliasow_pusty_cache_zachowuje_sie_jak_resolver_solo` | **FAILED** |
+| M4 | cichy fallback dla 4xx (zamiast raise) | `test_wrapper_aliasow_4xx_rzuca_wyjatek_do_gory` | **FAILED** |
+
+**Wynik: 4/4 mutacji wykrytych** → próg spełniony → DECYZJA: ZALICZONE.
+
+Kod przywrócony po każdej mutacji. `git diff tools/voice_gateway.py` pusty po Z29a.
+Finalny pytest: **68 passed** w `test_car_dispatch.py` (bez regresji z Z28). Mutacje
+nie commitowane (łamałyby produkcyjny kontrakt).
+
+**Wynik NIE uprawnia** (ZASADY 5.14): do pełnego pokrycia semantycznego wrappera.
+Mierzy tylko 4 gałęzie decyzyjne, nie wszystkie możliwe nieprawidłowe implementacje.
+Nie bada kontraktu `_car_cached_aliases` wobec HTTPS tailnetowego (tylko ścieżki błędne).
+
+### Z29c — code review 3 wrappera `_resolve_window_with_aliases` + 4 testów
+
+**Wynik**: 0 krytyczne / 2 średnie / 3 nice-to-have. **Wyrok: NA PÓŹNIEJ** — żadne znalezisko
+nie podważa Z28 ani Z29a. Dołożenie teraz łamałoby prerejestrację i ZASADY 5.3.
+
+**Średnie znaleziska (do następnej iteracji wrappera)**:
+1. `voice_gateway.py:1083` — normalizacja `q = query.lower().split()` nie obsługuje
+   diakrytyki. „ribnikstér" ≠ „ribnikster" w `aliases.json`. Decyzja projektowa, ale
+   nieudokumentowana i bez testu.
+2. `voice_gateway.py:1092` — wrapper normalizuje `q` **przed** `resolver_fn(q)`,
+   czyli resolver dostaje inny input niż bez wrappera. Zmiana semantyki o którą
+   nikt nie prosił (ZASADY 4.9 w literze). Test `pusty_cache_zachowuje_sie_jak_resolver_solo`
+   używa już-znormalizowanych fraz (`"car"`, `"panda"`), więc tego nie wyłapał.
+
+**Nice-to-have**:
+3. Brak testu dla `data: {}` (pusty projekt w Orchestratorze — ścieżka istnieje, asercji
+   nie ma).
+4. Test `test_wrapper_aliasow_4xx_rzuca_wyjatek_do_gory` nie weryfikuje, że `log(...)`
+   został zawołany — mutacja `log(...) → pass` by przeszła.
+5. TTL 600 s w aucie: zmiana aliasu = do 10 min opóźnienia. Dla aliasów edytowanych
+   w dniach (zasadnie), ale potencjał na „zmieniłem i nie działa" — ETag albo
+   `POST /api/aliases/invalidate` to osobne zadanie.
+
+**Potwierdzenia**:
+- ZASADY 5.9: 4xx **faktycznie** rzuca (`raise`), nie cichy fallback — kod zgodny
+  z komentarzem i testem.
+- `BaseException` (KeyboardInterrupt, SystemExit) **nie** jest łapany przez
+  `except Exception` — przechodzi dalej.
+- Mock `urllib.error.HTTPError` w teście matchuje prawdziwe zachowanie `api()`.
+
 ### Z26 — fix KRYT 2 z Z25 code review 2 (noc 2026-10-13)
 
 Profesor zlecił w petli: `outcome="timeout"` dla `rc != 0` bez TimeoutExpired → naprawić

@@ -89,6 +89,13 @@
   4. **Zepsuj politykę 4xx**: dla 4xx w `_car_cached_aliases` zignoruj zamiast podnieść (cichy fallback) → ma paść `test_wrapper_aliasow_4xx_rzuca_wyjatek_do_gory`
   **Statystyka**: liczba mutacji wykrytych / 4. **Próg = 4/4**. **Warunek NEGATYWU** (ZASADY 5.8): < 4/4 → mutacja niewykryta dostaje własny test; stop dalszych mutacji. **Wynik NIE uprawnia**: do kompletnego pokrycia semantycznego wrappera. 4 mutacje = 4 gałęzie, nie wszystkie
 
+- [x] 2c.20 **Z29a WYNIK** (noc 2026-10-13): **4/4 mutacji wykrytych**, próg spełniony.
+  - M1 (wyłącz mapowanie) → `test_wrapper_aliasow_mapuje_fraze_do_kanonu` **FAILED**
+  - M2 (zepsuj fallback) → `test_wrapper_aliasow_fallback_do_resolver_dla_fraz_spoza` **FAILED**
+  - M3 (pusty cache zwraca []) → `test_wrapper_aliasow_pusty_cache_zachowuje_sie_jak_resolver_solo` **FAILED**
+  - M4 (cichy fallback dla 4xx) → `test_wrapper_aliasow_4xx_rzuca_wyjatek_do_gory` **FAILED**
+  Kod przywrócony po każdej mutacji, finalny `git diff tools/voice_gateway.py` pusty, 68 pytest zielony. Mutacje nie commitowane (byłyby złamaniem produkcyjnego kontraktu). **DECYZJA: Z29a ZALICZONE 4/4**
+
 ## 3. Rejestr aktywnej sesji CarPlay
 
 - [ ] 3.1 Moduł `project_integration/monitor/carplay_sessions.py`: `load()`, `set_active(session_id, project)`, `get_active(session_id, now)` z wygaśnięciem po 600 s, `mark_pending(session_id)`; lock przez `monitor/lockutil.py`

@@ -1,5 +1,15 @@
 # START — Car_chatGPT_integration
 
+## Ostatnia sesja — 2026-10-13 noc (sesja 5 kontynuacja: Z23-Z29 pętla profesor-student)
+
+**Z29 (3 części, ~1h) w profesorze-studencie**: Z29a mutation test wrappera Z28 — **4/4
+mutacji wykrytych** (M1 wyłącz mapowanie, M2 zepsuj fallback, M3 pusty cache [], M4 cichy
+4xx), kod przywrócony, 68 pytest zielony. Z29b diagnoza fallu w PI (`test_voice_tts_routing.py:376`:
+`"\voice\ask-text"` — escape sequences `\v`+`\a` zamiast forward slashes; TimeoutError
+10s w recv_into; osobna zmiana per ZASADY 3.1). Z29c code review 3 wrappera: **0 KRYT /
+2 ŚREDNIE / 3 NICE**, wyrok **NA PÓŹNIEJ** — żadne nie podważa Z28/Z29a, dołożenie teraz
+łamałoby prerejestrację. Zapisane w notatce z fiksami jako TODO następnej iteracji.
+
 ## Ostatnia sesja — 2026-10-13 noc (sesja 5 kontynuacja: Z23-Z25 dojrzałość i mutation test)
 
 **Noc po sprincie HA/bramka**: Z23 zbudowany `/api/car/stop`, Z24 pomiar e2e x10 **ZALICZONY**
