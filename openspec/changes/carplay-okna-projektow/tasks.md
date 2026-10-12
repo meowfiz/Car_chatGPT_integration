@@ -102,6 +102,14 @@
   - **Czego wynik NIE uprawnia**: do decyzji o implementacji invalidacji na edycji (osobna prerejestracja z metodą i progiem akceptacji); do „NICE #5 zamknięty" nawet przy < 10/dobę — zamyka go dopiero zapis w notatce „decyzja: zostawiamy, warunek powrotu: Z".
   - **Pochodzenie (ZASADY 6.1)**: nagłówek pomiaru = commit + SHA-256 pliku logu + zakres dat + dokładna komenda filtrująca.
 
+  **POMIAR 2/2 WYNIK (2026-10-13 noc, po prerejestracji w commit ba4472e)**:
+  - **Nagłówek pochodzenia**: `voice_gateway.log` SHA-256 `062ec4420e6b6eae1cb9a4b0fa252452317363c859c89bd2a94df9a1d7aea3ce`, zakres `2026-09-18T07:42 → 2026-10-12T22:36`, komenda `grep -c "car-aliases"` = **52 wpisów**.
+  - **PODWÓJNY NEGATYW (ZASADY 5.8)**:
+    1. **Log NIE rozróżnia hit cache vs resolver_fn** — wszystkie 52 wpisy to `fetch failed (ConnectionError) -- fallback do stare`. Ścieżka sukcesu (cache miss → ok fetch) nie zostawia śladu, hit cache (TTL nie wygasł) też nie. Nie szacujemy przez proporcje (zgodnie z warunkiem negatywu).
+    2. **Wszystkie 52 wpisy pochodzą z 2026-10-12 wieczór — mojego własnego pomiaru Z28/Z29**. Wrapper nie jest podpięty do `_car_dispatch` w produkcji (iteracja 1 Z28, świadome). Zerowe wywołania z realnego ruchu z telefonu/HA.
+  - **DECYZJA**: NICE #5 **pozostaje nie-priorytetem**, ale z innego powodu niż pomiar 1/2 sugerował. Nie dlatego że „0,35% cyklu to szum" (to był pomiar 1/2), ale dlatego że **wrapper nie ma jeszcze żadnych rzeczywistych wywołań** — do czasu podpięcia pod `_car_dispatch` + przynajmniej 2 tygodnie ruchu z auta/HA pytanie o TTL jest przedwczesne.
+  - **Warunek powrotu do NICE #5**: podpięcie wrappera do `_car_dispatch` (iteracja 2 po pomiarze serii C w aucie) + log rozróżniający hit vs resolver_fn (dodać `log("car-aliases", "hit cache q=%s" % q)` i `log("car-aliases", "resolver_fn q=%s" % q)` w `_resolve_window_with_aliases`) + 14 dni ruchu + powtórzyć pomiar 2/2. Dopiero wtedy liczba jest interpretowalna wobec progu < 10/dobę.
+
 - [x] 2c.20 **Z29a WYNIK** (noc 2026-10-13): **4/4 mutacji wykrytych**, próg spełniony.
   - M1 (wyłącz mapowanie) → `test_wrapper_aliasow_mapuje_fraze_do_kanonu` **FAILED**
   - M2 (zepsuj fallback) → `test_wrapper_aliasow_fallback_do_resolver_dla_fraz_spoza` **FAILED**
