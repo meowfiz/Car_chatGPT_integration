@@ -137,6 +137,31 @@ TESTS = [
      lambda rc, body, dt: (
          rc == 401,
          "brak tokenu -> 401 OK")),
+
+    # Rozszerzenia wsparcia glosowego
+    ("car.projekty", "GET", "/api/car/projekty?n=3", None,
+     lambda rc, body, dt: (
+         rc == 200 and body.get("outcome") == "sent"
+             and isinstance(body.get("names"), list) and len(body["names"]) == 3,
+         "names: %s" % body.get("names", [])[:3])),
+
+    ("car.ostatnie_todo", "GET", "/api/car/ostatnie_todo?n=3", None,
+     lambda rc, body, dt: (
+         rc == 200 and body.get("outcome") in ("sent", "missing"),
+         "outcome=%s items=%d" % (body.get("outcome"), len(body.get("items", []))))),
+
+    ("car.zamknij.pusty", "POST", "/api/car/zamknij",
+     {"session_id": "selftest-nowa-" + str(int(time.time()))},
+     lambda rc, body, dt: (
+         rc == 200 and body.get("outcome") == "sent"
+             and "aktywnej" in body.get("text", ""),
+         "pusty -> 'nie bylo aktywnej sesji' OK")),
+
+    ("car.powtorz.pusta", "POST", "/api/car/powtorz",
+     {"session_id": "selftest-nowa2-" + str(int(time.time()))},
+     lambda rc, body, dt: (
+         rc == 200 and body.get("outcome") == "missing",
+         "pusta -> 'nie mam co powtorzyc' OK")),
 ]
 
 
