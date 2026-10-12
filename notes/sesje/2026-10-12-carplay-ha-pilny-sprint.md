@@ -179,6 +179,38 @@ NIE uprawnia do: obciążenia (10 prób), każdego pane (1 pane), LTE OK (symula
   Lekcja: skill mówi profesor Z model=fable, ale Agent tool wspiera tylko sonnet/opus/haiku —
   trzeba było zapisać odstępstwo w Z0 od razu, nie czekać do hook.
 
+### Z26 — fix KRYT 2 z Z25 code review 2 (noc 2026-10-13)
+
+Profesor zlecił w petli: `outcome="timeout"` dla `rc != 0` bez TimeoutExpired → naprawić
+na `outcome="error"`, enum spec rozszerzony, pytest z mutacją (ZASADY 4.4 druga połowa).
+
+**Miary (ZASADY 1.2 liczby):**
+- Przed: 98 pytest passed, `outcome="timeout"` dla rc=1 (fałszywy, z Z25 pomiarem live)
+- Po: 99 pytest passed (+1 nowy test), `outcome="error"` dla rc=1 + pole `rc` w response
+- Mutacja ręczna `"error"` → `"timeout"` w kodzie: test padł z `E - error / E + timeout`,
+  cofnięcie zrobione, `git diff` czyste.
+
+**Zakres zmian** (zgodnie z profesorem — tylko 3 miejsca):
+1. Kod `_car_stop` w `voice_gateway.py`: rozdzielone `except TimeoutExpired` (zwraca 200
+   z `outcome="timeout"`) od `rc != 0` bez timeoutu (`outcome="error"` + `rc` field).
+2. Spec `car-window-dispatch/spec.md` enum rozszerzony: `sent | resolved | ambiguous |
+   missing | refused | error | timeout` z notą, że `error` = błąd systemowy bez timeoutu.
+3. Nowy pytest `test_stop_rc_nonzero_zwraca_outcome_error_nie_timeout` używający
+   `monkeypatch` na `subprocess.run` → zwraca FakeResult z `returncode=1`. Asertuje:
+   `outcome == "error"`, `outcome != "timeout"`, `rc == 1`.
+
+**Mutacja uzyta jako warunek akceptacji**: zamiana `"outcome": "error"` → `"outcome":
+"timeout"` w `else` branch. Pytest wyjście: `FAILED tools/tests/test_car_dispatch.py::
+test_stop_rc_nonzero_zwraca_outcome_error_nie_timeout`. Komunikat asercji: `rc=1 bez
+timeoutu zwraca outcome='timeout', oczekiwano 'error' (Z26 KRYT 2)`.
+
+**Semantyka różnicowo**: dla user `error` = coś poszło nie tak po stronie bramki /
+tmux (można spróbować ponownie); `timeout` = czas wygasł (warto zwiększyć budżet albo
+sprawdzić obciążenie). Rozróżnienie było niemożliwe przed Z26.
+
+**ZASADY 5.9 (korekta w tej samej sesji)**: KRYT 2 wykryte w Z25, naprawione w Z26
+tej samej nocy. Nie zostawiamy do „jutra".
+
 ### Audyt pokrycia OpenSpec (Z22)
 
 Inwentaryzacja z `voice_gateway.py` (grep na `path == "/api/car/"`): **znaleziono 12 endpointów**

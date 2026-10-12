@@ -8,7 +8,10 @@ Bramka głosowa (`project_integration/tools/voice_gateway.py`) SHALL wystawiać 
 `Authorization: Bearer <token>` (token wspólny z HA `rest_command_claude.yaml`).
 Odpowiedź SHALL mieć `Content-Type: application/json` z ciałem JSON
 `{text, outcome, resolved_project?}`, gdzie `outcome` ∈
-`sent` | `resolved` | `ambiguous` | `missing` | `refused` | `timeout`. **STT i TTS
+`sent` | `resolved` | `ambiguous` | `missing` | `refused` | `error` | `timeout`. `error`
+oznacza błąd systemowy bez przekroczenia czasu (np. `rc != 0` z subprocess bez
+`TimeoutExpired`). `timeout` jest zarezerwowane wyłącznie dla rzeczywistego przekroczenia
+budżetu czasu. Rozróżnienie wprowadzone 2026-10-13 (KRYT 2 z code review 2 Z25). **STT i TTS
 nie są odpowiedzialnością bramki** — robi je pipeline HA, bramka tylko dyspozytor
 tekst → tmux → tekst.
 

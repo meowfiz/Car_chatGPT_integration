@@ -1,14 +1,14 @@
 # OpenSpec task status (generated)
 
-Generated 2026-10-12 23:43. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-12 23:47. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 71/172 tasks complete across 5 changes.**
+**Overall: 72/172 tasks complete across 5 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 37/64 | 2026-10-12 |
+| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 38/64 | 2026-10-12 |
 | [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-10-05 |
 | [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-10-05 |
 | [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 7/39 | 2026-10-05 |
@@ -19,7 +19,7 @@ Generated 2026-10-12 23:43. Regenerate with `python notes/gen_openspec_status.py
 
 ## carplay-okna-projektow
 
-`37/64` tasks complete.
+`38/64` tasks complete.
 
 ### 1. PoC gating — Siri Shortcut odtwarza audio z HTTPS tailnetu w CarPlay
 
@@ -92,7 +92,7 @@ Generated 2026-10-12 23:43. Regenerate with `python notes/gen_openspec_status.py
 | [x] | 2c.12 **PREREJESTRACJA Z25** w commit 4f5e54f (przed mutacją). ZASADY 3.3 zachowane |
 | [x] | 2c.13 Z25 wynik: **NEGATYW hipotezy** (ZASADY 5.8). Pytest `test_stop_bez_pane_zwraca_400_nie_500` **przeszedł mimo mutacji** `rc == 0` → `rc != 0`. Przyczyna: test pokrywa branch `brak pane → 400` (pre-send-keys), mutacja jest post-send-keys. **ALE** integration test (self-test live) **złapał mutację** — zwrócił `outcome="timeout"` zamiast `"sent"`. Wniosek: ZASADY 4.4 „testy sprawdzone mutacją" spełnione dla self-testu live, **nie dla pytest**. Pytest nie pokrywa sukces-branche semantyki `send-keys`. Kod przywrócony, `git diff` pusty (zweryfikowane) |
 | [ ] | **WYMAGA PROJEKTU — nie fix in-place** (KRYT 1 z code review 2 Z25): semantyka `/api/car/stop` dla sesji wielo-okiennych i `claude -p` signal handler. `send-keys -t =session:` idzie do aktywnego pane, nie konkretnego. `claude -p` ma własny signal handler — pojedyncze C-c czyści prompt, nie zabija generowania. Text „stopnieto X" kłamie. Decyzja projektowa (nowy proposal/design, nie bugfix). Zapisane w `notes/HANDOFF_voice_gateway.md` |
-| [ ] | **FIX lokalny z warunkiem akceptacji** (KRYT 2 z code review 2 Z25): `_car_stop` ustawia `outcome="timeout"` gdy `rc != 0` — fałszywe mapowanie klasy błędu. Zmiana: `outcome="error"` dla tego branche; enum spec rozszerzony o `error`. **Warunek akceptacji** (ZASADY 4.4 druga połowa): nowy pytest nazywający porażkę („send-keys rc!=0 bez timeoutu zwraca outcome='error', nie 'timeout'"), uruchomić z mutacją `"error" → "timeout"` — test MUSI PAŚĆ |
+| [x] | 2c.14 **Z26 FIX KRYT 2**: `_car_stop` miał `outcome="timeout"` dla `rc != 0` bez TimeoutExpired. Fix 2026-10-13 noc: osobny `except subprocess.TimeoutExpired` → `outcome="timeout"` 200 OK; `rc != 0` bez timeoutu → `outcome="error"` 200 OK + pole `rc`. Spec rozszerzony: enum `sent\|resolved\|ambiguous\|missing\|refused\|error\|timeout`. **Mutation test** (ZASADY 4.4 druga połowa): nowy pytest `test_stop_rc_nonzero_zwraca_outcome_error_nie_timeout` używający `monkeypatch` dla `subprocess.run` z `rc=1`. Mutation: zamiana `"error"` → `"timeout"` → test PADŁ (`E - error / E + timeout`), kod przywrócony. **99 pytest passed** (było 98, +1) |
 
 ### 3. Rejestr aktywnej sesji CarPlay
 
