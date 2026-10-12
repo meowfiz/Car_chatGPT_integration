@@ -148,7 +148,7 @@ TESTS = [
     ("car.ostatnie_todo", "GET", "/api/car/ostatnie_todo?n=3", None,
      lambda rc, body, dt: (
          rc == 200 and body.get("outcome") in ("sent", "missing"),
-         "outcome=%s items=%d" % (body.get("outcome"), len(body.get("items", []))))),
+         "outcome=%s count=%d" % (body.get("outcome"), body.get("count", 0)))),
 
     ("car.zamknij.pusty", "POST", "/api/car/zamknij",
      {"session_id": "selftest-nowa-" + str(int(time.time()))},
