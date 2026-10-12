@@ -79,11 +79,23 @@ def build_pdf(out_path: str) -> None:
 
     # Tytul
     pdf.set_font(fam, "B", 16)
-    pdf.cell(0, 10, t("Sciaga - CarPlay v2 (komendy glosowe)"),
+    pdf.cell(0, 10, t("Sciaga - CarPlay v3 (komendy glosowe)"),
              new_x="LMARGIN", new_y="NEXT")
     pdf.set_font(fam, "", 10)
     pdf.cell(0, 6, t("Zmiana openspec: carplay-okna-projektow. Data: 2026-10-12."),
              new_x="LMARGIN", new_y="NEXT")
+    pdf.ln(2)
+
+    # Status 2026-10-12
+    pdf.set_font(fam, "B", 11)
+    pdf.cell(0, 7, t("Status 2026-10-12:"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "TTS Twoim glosem Sznuk na wszystkich komendach (nie tylko ZapytajClaude),\n"
+        "turn_on hijacking rozwiazany (encje input_boolean.pm_* przemianowane w\n"
+        "entity_registry), 11 intentow HA aktywnych."
+    ))
     pdf.ln(4)
 
     # ====================================================================
@@ -197,6 +209,44 @@ def build_pdf(out_path: str) -> None:
         "Co mowisz: 'Claude zapisz zadanie <tekst>' / 'Claude dodaj todo <tekst>' /\n"
         "   'Claude notatka <tekst>'.\n"
         "Efekt: wpis trafia do ~/.claude/carplay_todos.jsonl (data + tekst)."
+    ))
+    pdf.ln(2)
+
+    # 9. Powtorz
+    pdf.set_font(fam, "B", 11)
+    pdf.cell(0, 7, t("9. Powtorz ostatnia odpowiedz"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "Co mowisz: 'Claude powtorz' / 'Claude jeszcze raz' / 'Claude nie slyszalem' /\n"
+        "   'Claude co'.\n"
+        "Co uslyszysz: ten sam tekst co ostatnio.\n"
+        "Kiedy uzyc: podmuch w glosniku, halas, przeslyszanie."
+    ))
+    pdf.ln(2)
+
+    # 10. Moje todo
+    pdf.set_font(fam, "B", 11)
+    pdf.cell(0, 7, t("10. Zobacz zapisane zadania"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "Co mowisz: 'Claude moje todo' / 'Claude ostatnie zadania' /\n"
+        "   'Claude co mialem zrobic'.\n"
+        "Co uslyszysz: recytacje 5 ostatnich TODO.\n"
+        "Kiedy uzyc: przypomniec sobie co zapisales na petli lub w aucie."
+    ))
+    pdf.ln(2)
+
+    # 11. Zamknij
+    pdf.set_font(fam, "B", 11)
+    pdf.cell(0, 7, t("11. Zakoncz sesje"),
+             new_x="LMARGIN", new_y="NEXT")
+    pdf.set_font(fam, "", 10)
+    pdf.multi_cell(0, 6, t(
+        "Co mowisz: 'Claude zamknij' / 'Claude koniec' / 'Claude reset'.\n"
+        "Co uslyszysz: 'zamkniete, bylo X' albo 'nie bylo aktywnej sesji'.\n"
+        "Kiedy uzyc: zeby zmienic projekt bez czekania 10 min TTL."
     ))
     pdf.ln(2)
 

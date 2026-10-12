@@ -5,6 +5,23 @@
 **Routing**: GET w `do_GET` (ok. linii 1670), POST w `do_POST` (ok. linii 2620).
 **Base URL (przykład)**: `https://desktop-geih38c.taileb4004.ts.net:8788`
 
+**Aktualizacja 2026-10-12 wieczór**: łącznie **11 endpointów** (9 funkcjonalnych + 2 diagnostyczne).
+Pełna tabela mapowania HA ↔ bramka:
+
+| intent HA | fraza | endpoint bramki |
+|---|---|---|
+| TestClaude | „Claude test" | POST /api/car/dispatch (hardcoded prompt do PI) |
+| PomocClaude | „Claude pomoc" | — (speech.text w HA, bez REST) |
+| StatusClaude | „Claude status" | GET /api/car/status |
+| OtworzOknoClaude | „Claude otwórz X" | POST /api/car/open |
+| PodsumowanieClaude | „Claude co z X" | GET /api/car/project/<X>/summary |
+| DispatchClaude | „Claude do okna X, Y" | POST /api/car/dispatch |
+| ZapiszZadanie | „Claude zapisz zadanie X" | POST /api/car/todo |
+| ZamknijClaude | „Claude zamknij" | POST /api/car/zamknij |
+| PowtorzClaude | „Claude powtórz" | POST /api/car/powtorz |
+| OstatnieTodoClaude | „Claude moje todo" | GET /api/car/ostatnie_todo?n=5 |
+| ZapytajClaude (stary) | „Claude <pytanie>" | POST /voice/ask-text (poza /api/car/*) |
+
 Wszystkie endpointy `/api/car/*` **oprocz** `test-audio` i `test-text` wymagaja `Authorization: Bearer <token>` i zwracaja `application/json; charset=utf-8` z polem `outcome` (enum: `sent | ambiguous | missing | refused | timeout | resolved`).
 
 ---
@@ -287,6 +304,33 @@ curl.exe -sS -X POST "https://desktop-geih38c.taileb4004.ts.net:8788/api/car/tod
 - Timeout: n/d.
 - Logi: `log("car-poc", "test-text HIT ua=... remote=...")`.
 - Usuniecie: razem z `/api/car/test-audio`, task 7.1.
+
+---
+
+## 9. POST /api/car/powtorz — powtorz ostatnie Glosowo
+
+**Co robi**: zwraca `last_text` zapisany w rejestrze sesji po ostatnim pomyslnym `_car_dispatch`. Pomaga gdy w aucie podmuch zjad ostatnie zdanie.
+
+- Metoda: `POST`
+- URL: `/api/car/powtorz`
+- Naglowki: `Authorization: Bearer <token>`, `Content-Type: application/json`
+- Body: `{"session_id": "<uuid>"}`
+- Odpowiedz 200 JSON: `{"text": "...", "outcome": "sent"}` lub `{"text": "nie mam co powtorzyc", "outcome": "missing"}`
+- Logi: `log("car-powtorz", "sid=X -> <tekst>")`.
+- Rejestr: `last_text` aktualizuje `car_update_last_text` po `_car_dispatch` sukcesie.
+
+---
+
+## 10. GET /api/car/ostatnie_todo — recytacja ostatnich N zadan
+
+**Co robi**: czyta koncowke `~/.claude/carplay_todos.jsonl`, bierze ostatnie `n` wpisow, buduje tekst `"ostatnie zadania: X; Y; Z"`.
+
+- Metoda: `GET`
+- URL: `/api/car/ostatnie_todo?n=<1..10>` (default 5, max 10)
+- Naglowki: `Authorization: Bearer <token>`
+- Body: brak
+- Odpowiedz 200 JSON: `{"text": "ostatnie zadania: ...", "outcome": "sent", "items": [...]}` lub `{"text": "nie masz zapisanych zadan", "outcome": "missing"}`
+- Logi: `log("car-todos", "ok N items")`.
 
 ---
 
