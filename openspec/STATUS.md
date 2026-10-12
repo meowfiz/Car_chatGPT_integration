@@ -1,14 +1,14 @@
 # OpenSpec task status (generated)
 
-Generated 2026-10-13 00:24. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-13 00:30. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 76/178 tasks complete across 5 changes.**
+**Overall: 76/180 tasks complete across 5 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 42/70 | 2026-10-13 |
+| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 42/72 | 2026-10-13 |
 | [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-10-05 |
 | [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-10-05 |
 | [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 7/39 | 2026-10-05 |
@@ -19,7 +19,7 @@ Generated 2026-10-13 00:24. Regenerate with `python notes/gen_openspec_status.py
 
 ## carplay-okna-projektow
 
-`42/70` tasks complete.
+`42/72` tasks complete.
 
 ### 1. PoC gating — Siri Shortcut odtwarza audio z HTTPS tailnetu w CarPlay
 
@@ -98,6 +98,8 @@ Generated 2026-10-13 00:24. Regenerate with `python notes/gen_openspec_status.py
 | [ ] | 2c.17 **PREREJESTRACJA Z28** (przed implementacją, ZASADY 3.3): wrapper `_resolve_window_with_aliases(query)` używa aliasów z Orchestratora (`GET /api/projects`, cache TTL 600 s, HTTP timeout 2 s, 5xx/timeout → fallback do starego cache lub `okna.resolve` solo, 4xx → log + wyjątek do góry — bo to konfig błąd, nie cichy fallback). **Hipoteza**: redukuje do zera odsetek `project=None` dla fraz z `poc/aliases.json`, bez zmiany zachowania dla fraz spoza aliases. **Dane testu**: - **Zbiór A (39 par)**: 3 frazy × 13 projektów z `poc/aliases.json` (fraza → kanon) - **Zbiór B (10 literalnych fraz, zadeklarowanych PRZED implementacją — nie generowane dynamicznie)**: 1. `jakis losowy projekt` 2. `cos czego nie ma` 3. `panda` 4. `prosze o pomoc` 5. `co teraz` 6. `kot domowy` 7. `programowanie w rust` 8. `wczoraj spadal snieg` 9. `nic takiego` 10. `siedem dziewiec` - **Statystyka**: M1 = ile z 39 par rozwiązuje się do kanonicznej (próg **39/39**); M2 = ile z 10 fraz zbioru B zachowuje puste zwroty (próg **10/10**) - **Kontrola odtworzenia P2 (ZASADY 5.3)**: skrypt pomiarowy **odmawia uruchomienia** gdy wrapper z pustym cache aliasów nie zwraca identycznych wyników co `okna.resolve` solo dla wszystkich 49 fraz (A ∪ B) - **Liczba porównań**: 1 (wrapper vs status quo) - **Warunek NEGATYWU**: M1 < 39/39 albo M2 < 10/10 → przerywam, nie stroję do magic konstanty - **Wynik NIE uprawnia**: do „fuzzy ogólnie lepszy"; do opinii o rzeczywistych frazach z auta (tylko syntetyczne); do frontu HA Assist ani Siri; do opinii o aliasach wielokomponentowych w kanonie |
 | [x] | 2c.18 **Z28 WYNIK** (noc 2026-10-13, po PREREJESTRACJI 2c.17): wrapper `_resolve_window_with_aliases` zbudowany. **Kontrola odtworzenia P2**: wrapper z pustym cache == `okna.resolve` solo dla **49/49 fraz** (ZASADY 5.3 spełniona). **Pomiar główny**: **M1 = 42/42** (nie 39 — `aliases.json` ma 14 projektów, nie 13 jak policzyłem w prerejestracji; wszystkie rozwiązują się do kanonu); **M2 = 10/10** (wszystkie frazy zbioru B zachowują puste zwroty). **DECYZJA: ZALICZONE**. 4 nowe pytesty (`test_wrapper_aliasow_*`: mapuje, fallback, pusty cache, 4xx), **68 pytest passed** (było 64, +4). Skrypt pomiarowy `poc/z28_aliases_pomiar.py` z kontrolą P2 odmawiającą uruchomienia głównego pomiaru przy rozjazdach. **Fix ubocznego nie było** — kod przeszedł od razu. **Wrapper nie podpięty do `_car_dispatch`** w tej iteracji — osobna tura po pomiarze z rzeczywistymi frazami z auta (ZASADY 3.1: osobna zmiana) |
 | [ ] | 2c.19 **PREREJESTRACJA Z29a** (PRZED mutacjami, ZASADY 3.3 + 4.4): mutation test wrappera `_resolve_window_with_aliases`. **Hipoteza**: każdy z 4 testów `test_wrapper_aliasow_*` wykryje co najmniej 1 mutację swojej gałęzi. **Lista 4 mutacji** (ZASADY 5.4 — dokładnie 4, nie więcej): 1. **Wyłącz mapowanie**: w `_resolve_window_with_aliases` zwróć od razu `resolver_fn(query)` z pominięciem cache aliasów → ma paść `test_wrapper_aliasow_mapuje_fraze_do_kanonu` 2. **Zepsuj fallback**: dla frazy spoza aliasów zwróć `[]` zamiast `resolver_fn(query)` → ma paść `test_wrapper_aliasow_fallback_do_resolver_dla_fraz_spoza` 3. **Zepsuj zachowanie pustego cache**: przy pustym cache zwróć `[]` zamiast delegować do resolver → ma paść `test_wrapper_aliasow_pusty_cache_zachowuje_sie_jak_resolver_solo` 4. **Zepsuj politykę 4xx**: dla 4xx w `_car_cached_aliases` zignoruj zamiast podnieść (cichy fallback) → ma paść `test_wrapper_aliasow_4xx_rzuca_wyjatek_do_gory` **Statystyka**: liczba mutacji wykrytych / 4. **Próg = 4/4**. **Warunek NEGATYWU** (ZASADY 5.8): < 4/4 → mutacja niewykryta dostaje własny test; stop dalszych mutacji. **Wynik NIE uprawnia**: do kompletnego pokrycia semantycznego wrappera. 4 mutacje = 4 gałęzie, nie wszystkie |
+| [ ] | 2c.21 **Z29c NICE #4** — mutacja `log("car-aliases", ...) → pass` by przeszła przez obecne 4 testy wrappera (brak asercji `call_count` logu w `test_wrapper_aliasow_4xx_rzuca_wyjatek_do_gory`). **Kryterium akceptacji**: dodać asercję `mock.call_count ≥ 1` dla loga 4xx w teście 4xx; mutacja `log → pass` → test padnie. **Ryzyko**: niskie (mikro-mutacja, standardowa łatka). **Status**: świadomie odłożone — mikro-mutacja, standardowa łatka asercji call_count niewiele wnosi (ZASADY 5.10) |
+| [ ] | 2c.22 **Z29c NICE #5** — TTL 600 s w cache aliasów. **Potencjał**: user edytuje `aliases.json` → `sync_aliases.py` → Orchestrator, do 10 min opóźnienia zanim bramka zobaczy („zmieniłem i nie działa"). **Kryterium akceptacji**: albo (a) endpoint `POST /api/aliases/invalidate` wymuszający re-fetch, albo (b) ETag/If-None-Match w `GET /api/projects` z invalidacją po zmianie. **WYMAGA POMIARU PRZED IMPLEMENTACJĄ** (ZASADY 5.10 — jedna zadeklarowana reguła, nie tuning per przypadek): ile razy w typowej sesji auta user zmienia alias? Jaki jest realny TTL potrzebny? Bez tego fix jest tuningiem bez miary — osobna prerejestracja |
 | [x] | 2c.20 **Z29a WYNIK** (noc 2026-10-13): **4/4 mutacji wykrytych**, próg spełniony. - M1 (wyłącz mapowanie) → `test_wrapper_aliasow_mapuje_fraze_do_kanonu` **FAILED** - M2 (zepsuj fallback) → `test_wrapper_aliasow_fallback_do_resolver_dla_fraz_spoza` **FAILED** - M3 (pusty cache zwraca []) → `test_wrapper_aliasow_pusty_cache_zachowuje_sie_jak_resolver_solo` **FAILED** - M4 (cichy fallback dla 4xx) → `test_wrapper_aliasow_4xx_rzuca_wyjatek_do_gory` **FAILED** Kod przywrócony po każdej mutacji, finalny `git diff tools/voice_gateway.py` pusty, 68 pytest zielony. Mutacje nie commitowane (byłyby złamaniem produkcyjnego kontraktu). **DECYZJA: Z29a ZALICZONE 4/4** |
 
 ### 3. Rejestr aktywnej sesji CarPlay

@@ -89,6 +89,10 @@
   4. **Zepsuj politykę 4xx**: dla 4xx w `_car_cached_aliases` zignoruj zamiast podnieść (cichy fallback) → ma paść `test_wrapper_aliasow_4xx_rzuca_wyjatek_do_gory`
   **Statystyka**: liczba mutacji wykrytych / 4. **Próg = 4/4**. **Warunek NEGATYWU** (ZASADY 5.8): < 4/4 → mutacja niewykryta dostaje własny test; stop dalszych mutacji. **Wynik NIE uprawnia**: do kompletnego pokrycia semantycznego wrappera. 4 mutacje = 4 gałęzie, nie wszystkie
 
+- [ ] 2c.21 **Z29c NICE #4** — mutacja `log("car-aliases", ...) → pass` by przeszła przez obecne 4 testy wrappera (brak asercji `call_count` logu w `test_wrapper_aliasow_4xx_rzuca_wyjatek_do_gory`). **Kryterium akceptacji**: dodać asercję `mock.call_count ≥ 1` dla loga 4xx w teście 4xx; mutacja `log → pass` → test padnie. **Ryzyko**: niskie (mikro-mutacja, standardowa łatka). **Status**: świadomie odłożone — mikro-mutacja, standardowa łatka asercji call_count niewiele wnosi (ZASADY 5.10)
+
+- [ ] 2c.22 **Z29c NICE #5** — TTL 600 s w cache aliasów. **Potencjał**: user edytuje `aliases.json` → `sync_aliases.py` → Orchestrator, do 10 min opóźnienia zanim bramka zobaczy („zmieniłem i nie działa"). **Kryterium akceptacji**: albo (a) endpoint `POST /api/aliases/invalidate` wymuszający re-fetch, albo (b) ETag/If-None-Match w `GET /api/projects` z invalidacją po zmianie. **WYMAGA POMIARU PRZED IMPLEMENTACJĄ** (ZASADY 5.10 — jedna zadeklarowana reguła, nie tuning per przypadek): ile razy w typowej sesji auta user zmienia alias? Jaki jest realny TTL potrzebny? Bez tego fix jest tuningiem bez miary — osobna prerejestracja
+
 - [x] 2c.20 **Z29a WYNIK** (noc 2026-10-13): **4/4 mutacji wykrytych**, próg spełniony.
   - M1 (wyłącz mapowanie) → `test_wrapper_aliasow_mapuje_fraze_do_kanonu` **FAILED**
   - M2 (zepsuj fallback) → `test_wrapper_aliasow_fallback_do_resolver_dla_fraz_spoza` **FAILED**
