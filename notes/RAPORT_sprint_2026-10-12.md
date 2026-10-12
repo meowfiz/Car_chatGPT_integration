@@ -21,7 +21,9 @@ Mówisz w aucie przez **HA Assist** (ikona HA w CarPlay → kafelek Assist). Sł
 | **Claude zamknij** / Claude koniec | kasuje sticky sesję |
 | **Claude powtórz** / Claude nie słyszałem | powtarza ostatnie Głosowo |
 
-Plus w robocie HA Claude: MetrykiClaude („Claude metryki" → `ostatnie 24h: 121 wywolan`).
+Plus **12-ty intent**: **„Claude metryki"** / Claude ile używałeś → `ostatnie 24h: 122 wywolan,
+dispatch 32, poc 30, status 13`. **PomocClaude** zaciąga listę projektów dynamicznie z
+`/api/car/projekty` (nie hardcoded).
 
 ## Co było naprawione
 
@@ -34,7 +36,8 @@ Plus w robocie HA Claude: MetrykiClaude („Claude metryki" → `ostatnie 24h: 1
 
 ## Liczby
 
-- **12 endpointów bramki**, **11 intentów HA** (+1 w robocie)
+- **12 endpointów bramki**, **12 intentów HA** (wszystkie podpięte, w tym MetrykiClaude
+  i dynamic PomocClaude)
 - **89 testów PI** (zielony pytest), **15/15 self-test** z komputera (~38 s cykl)
 - **23 wzorce odmów** pisujących (było 11); 12 nowych testów parametrycznych
 - **15 commitów** łącznie (10 PI, 5 Car), wszystkie **pushed**
@@ -46,9 +49,10 @@ Plus w robocie HA Claude: MetrykiClaude („Claude metryki" → `ostatnie 24h: 1
 
 1. **Pomiar w aucie czeka** — serie C wg prerejestracji, ≥ 10 prób, mediana ≤ 20 s.
    Potrzebne po jeździe żeby zarchiwizować `carplay-okna-projektow`.
-2. **Dynamiczna lista projektów w PomocClaude** — HA Claude w robocie, może zamienić
-   hardcoded listę na `/api/car/projekty` live.
-3. **MetrykiClaude** — HA Claude doda PodsumowanieClaude dynamiczne.
+2. ~~**Dynamiczna lista projektów w PomocClaude**~~ — **zrobione** (HA commit 841e8a5),
+   `PomocClaude` zaciąga listę z `/api/car/projekty` zamiast hardcoded.
+3. ~~**MetrykiClaude**~~ — **zrobione** (HA commit 841e8a5), 6/6 fraz łapie
+   („Claude metryki", „Claude ile używałeś", „Claude liczby").
 4. **Diagnostyczne `/api/car/test-{audio,text}`** do usunięcia po pomiarze (task 7.1).
 
 ## Jak sprawdzić że wszystko działa — sanity check z komputera
