@@ -223,6 +223,51 @@ nie commitowane (łamałyby produkcyjny kontrakt).
 Mierzy tylko 4 gałęzie decyzyjne, nie wszystkie możliwe nieprawidłowe implementacje.
 Nie bada kontraktu `_car_cached_aliases` wobec HTTPS tailnetowego (tylko ścieżki błędne).
 
+### Z29c-fix NICE #4 (asercja log.call_count) + pomiar NICE #5 2/2 (noc 2026-10-13)
+
+**NICE #4** — asercja `log.call_count` dla 4xx w teście wrappera. Monkeypatch na `vg.log`
+zlicza wpisy `car-aliases` z komunikatem 4xx/401. **Mutacja ręczna**: usunięcie
+`log("car-aliases", "4xx HTTP %d ..." % exc.code)` dla 4xx → test padł z `assert False`
+(brak śladu loga). Kod przywrócony, `git diff` pusty. **ZASADY 4.4 druga połowa** teraz
+spełniona dla loga 4xx: mutacja `log → pass` nie przeszłaby ciszej.
+
+**Pomiar NICE #5 2/2** (profesor zalecił po pomiarze 1/2 git log aliases.json dał medianę
+2 dni = 0,35% cyklu — ale nie zmierzył, ile zapytań trafia w okno nieświeżości):
+
+- **Prerejestracja PRZED analizą** (commit `ba4472e`): jednostka = wywołań `_car_cached_aliases`/dobę
+  (mediana po dniach > 0, bez zer z nocy), próg < 10 / 10-100 / > 100, warunek NEGATYWU
+  („log nie rozróżnia hit vs resolver → wprost, bez proporcji"), pochodzenie (SHA-256 pliku logu
+  + zakres + komenda).
+- **Nagłówek pomiaru** (ZASADY 6.1): `voice_gateway.log` SHA-256
+  `062ec4420e6b6eae1cb9a4b0fa252452317363c859c89bd2a94df9a1d7aea3ce`, zakres
+  `2026-09-18T07:42 → 2026-10-12T22:36`, komenda `grep -c "car-aliases"` = **52 wpisów**.
+- **PODWÓJNY NEGATYW** (ZASADY 5.8):
+  1. Log nie rozróżnia hit cache vs resolver_fn — wszystkie 52 wpisy to
+     `fetch failed (ConnectionError) -- fallback do stare`. Nie szacujemy przez proporcje.
+  2. Wszystkie 52 wpisy z 2026-10-12 wieczór — **mojego własnego pomiaru Z28/Z29**. Wrapper
+     nie podpięty do `_car_dispatch` (iteracja 1 Z28, świadome). Zerowe wywołania z realnego
+     ruchu.
+- **Decyzja**: NICE #5 nadal nie-priorytet, **ale z innego powodu niż pomiar 1/2 sugerował**.
+  Nie dlatego że „0,35% cyklu to szum", ale dlatego że wrapper nie ma jeszcze żadnych
+  rzeczywistych wywołań. Pytanie o TTL przedwczesne.
+- **Warunek powrotu zapisany** w `tasks.md` 2c.22: podpięcie wrappera + log rozróżniający
+  hit/resolver + 14 dni ruchu + powtórzyć pomiar 2/2.
+
+**Prerejestracje na przyszłe sesje** (zgodnie z profesorem — wartościowe użycie czasu po
+zakończeniu zadeklarowanej liczby pomiarów):
+
+- **2c.23** implementacja NICE #5: `POST /api/car/aliases/invalidate` z Bearer tokenem;
+  próg ≥ 9/10 po `invalidate`, ≤ 1/10 bez (bo pierwsze zapytanie w 10-min oknie trafia
+  w stary cache); alternatywa ETag/If-None-Match odrzucona (zmiana Orchestratora, ZASADY 4.9).
+  Warunek NEGATYWU: 100% hit cache mimo `invalidate` → bug implementacji, bez strojenia.
+- **2c.24** iteracja 2 wrappera (podpięcie `_resolve_window_with_aliases` do `_car_dispatch`):
+  warunkowa wobec pomiaru serii C PoC (grupa 6). Nie planujemy teraz, bo seria C `blocked`
+  na user offline.
+
+**Commity**: PI `6a653d5` (NICE #4), Car `ddea6c0` (zapis NICE #4 + dane NICE #5),
+Car `ba4472e` (prerejestracja pomiar 2/2), Car `ba3e908` (wynik negatyw), Car `6d2f128`
+(prerejestracje 2c.23 + 2c.24).
+
 ### Z29c-fix — dokumentacja decyzji „nie normalizujemy diakrytyki" + test `data: {}` (noc 2026-10-13)
 
 Po Z29c (0 KRYT) profesor zalecił fiksy w kolejności: **dokumentacja pierwsza**, test
