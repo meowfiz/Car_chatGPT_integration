@@ -80,6 +80,8 @@
   - **Warunek NEGATYWU**: M1 < 39/39 albo M2 < 10/10 → przerywam, nie stroję do magic konstanty
   - **Wynik NIE uprawnia**: do „fuzzy ogólnie lepszy"; do opinii o rzeczywistych frazach z auta (tylko syntetyczne); do frontu HA Assist ani Siri; do opinii o aliasach wielokomponentowych w kanonie
 
+- [x] 2c.18 **Z28 WYNIK** (noc 2026-10-13, po PREREJESTRACJI 2c.17): wrapper `_resolve_window_with_aliases` zbudowany. **Kontrola odtworzenia P2**: wrapper z pustym cache == `okna.resolve` solo dla **49/49 fraz** (ZASADY 5.3 spełniona). **Pomiar główny**: **M1 = 42/42** (nie 39 — `aliases.json` ma 14 projektów, nie 13 jak policzyłem w prerejestracji; wszystkie rozwiązują się do kanonu); **M2 = 10/10** (wszystkie frazy zbioru B zachowują puste zwroty). **DECYZJA: ZALICZONE**. 4 nowe pytesty (`test_wrapper_aliasow_*`: mapuje, fallback, pusty cache, 4xx), **68 pytest passed** (było 64, +4). Skrypt pomiarowy `poc/z28_aliases_pomiar.py` z kontrolą P2 odmawiającą uruchomienia głównego pomiaru przy rozjazdach. **Fix ubocznego nie było** — kod przeszedł od razu. **Wrapper nie podpięty do `_car_dispatch`** w tej iteracji — osobna tura po pomiarze z rzeczywistymi frazami z auta (ZASADY 3.1: osobna zmiana)
+
 ## 3. Rejestr aktywnej sesji CarPlay
 
 - [ ] 3.1 Moduł `project_integration/monitor/carplay_sessions.py`: `load()`, `set_active(session_id, project)`, `get_active(session_id, now)` z wygaśnięciem po 600 s, `mark_pending(session_id)`; lock przez `monitor/lockutil.py`
