@@ -321,6 +321,10 @@ curl.exe -sS -X POST "https://desktop-geih38c.taileb4004.ts.net:8788/api/car/tod
 
 ---
 
+## Wrapper aliasow — decyzje projektowe
+
+- `_resolve_window_with_aliases` **nie normalizuje diakrytyki** w `q` — decyzja 2026-10-13 (Z29c), warunek odwrócenia opisany w komentarzu `project_integration/tools/voice_gateway.py:1073`.
+
 ## 10. GET /api/car/ostatnie_todo — recytacja ostatnich N zadan
 
 **Co robi**: czyta koncowke `~/.claude/carplay_todos.jsonl`, bierze ostatnie `n` wpisow, buduje tekst `"ostatnie zadania: X; Y; Z"`.
