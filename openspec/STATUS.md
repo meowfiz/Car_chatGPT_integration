@@ -1,14 +1,14 @@
 # OpenSpec task status (generated)
 
-Generated 2026-10-12 23:47. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-12 23:57. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 72/172 tasks complete across 5 changes.**
+**Overall: 74/174 tasks complete across 5 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 38/64 | 2026-10-12 |
+| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 40/66 | 2026-10-12 |
 | [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-10-05 |
 | [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-10-05 |
 | [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 7/39 | 2026-10-05 |
@@ -19,7 +19,7 @@ Generated 2026-10-12 23:47. Regenerate with `python notes/gen_openspec_status.py
 
 ## carplay-okna-projektow
 
-`38/64` tasks complete.
+`40/66` tasks complete.
 
 ### 1. PoC gating — Siri Shortcut odtwarza audio z HTTPS tailnetu w CarPlay
 
@@ -93,6 +93,8 @@ Generated 2026-10-12 23:47. Regenerate with `python notes/gen_openspec_status.py
 | [x] | 2c.13 Z25 wynik: **NEGATYW hipotezy** (ZASADY 5.8). Pytest `test_stop_bez_pane_zwraca_400_nie_500` **przeszedł mimo mutacji** `rc == 0` → `rc != 0`. Przyczyna: test pokrywa branch `brak pane → 400` (pre-send-keys), mutacja jest post-send-keys. **ALE** integration test (self-test live) **złapał mutację** — zwrócił `outcome="timeout"` zamiast `"sent"`. Wniosek: ZASADY 4.4 „testy sprawdzone mutacją" spełnione dla self-testu live, **nie dla pytest**. Pytest nie pokrywa sukces-branche semantyki `send-keys`. Kod przywrócony, `git diff` pusty (zweryfikowane) |
 | [ ] | **WYMAGA PROJEKTU — nie fix in-place** (KRYT 1 z code review 2 Z25): semantyka `/api/car/stop` dla sesji wielo-okiennych i `claude -p` signal handler. `send-keys -t =session:` idzie do aktywnego pane, nie konkretnego. `claude -p` ma własny signal handler — pojedyncze C-c czyści prompt, nie zabija generowania. Text „stopnieto X" kłamie. Decyzja projektowa (nowy proposal/design, nie bugfix). Zapisane w `notes/HANDOFF_voice_gateway.md` |
 | [x] | 2c.14 **Z26 FIX KRYT 2**: `_car_stop` miał `outcome="timeout"` dla `rc != 0` bez TimeoutExpired. Fix 2026-10-13 noc: osobny `except subprocess.TimeoutExpired` → `outcome="timeout"` 200 OK; `rc != 0` bez timeoutu → `outcome="error"` 200 OK + pole `rc`. Spec rozszerzony: enum `sent\|resolved\|ambiguous\|missing\|refused\|error\|timeout`. **Mutation test** (ZASADY 4.4 druga połowa): nowy pytest `test_stop_rc_nonzero_zwraca_outcome_error_nie_timeout` używający `monkeypatch` dla `subprocess.run` z `rc=1`. Mutation: zamiana `"error"` → `"timeout"` → test PADŁ (`E - error / E + timeout`), kod przywrócony. **99 pytest passed** (było 98, +1) |
+| [x] | 2c.15 **PREREJESTRACJA Z27** w commit przed kodem. ZASADY 3.3 zachowane |
+| [x] | 2c.16 **Z27 FIX**: `POST /api/car/rotate_token` zbudowany. `secrets.token_hex(32)` → nowy token, zapis atomowy `tmp + os.replace`, odpowiedź JSON `{token, rotated_at, token_hash (sha256[:8])}`. **Nie loguje tokena**, tylko `rotated_at` i hash prefix. **Odczyt per-request z dysku** (bez cache w pamięci — rotacja działa bez restartu). **2 pytesty**: integracyjny (3 asercje: stary→401, nowy→200, plik zmieniony przez `_car_rotate_token` na FakeHandler) + atomowości (symulacja wyjątku przed `os.replace` → stary token dalej w pliku). **Mutation**: `os.replace` usunięty → test padł z `assert nowy in nowe_tokeny` (nowy token nie w pliku). Kod przywrócony. **Live test**: rotacja z backupem — ROTACJA OK (hash 05e2b7db), stary→401, nowy→200, backup przywrócony dla HA. **Fix uboczny**: `load_car_tokens(path=None)` lazy lookup (było `path=CAR_TOKEN_PATH` — monkeypatch nie działał, odkryte przez test). **101 pytest** (było 99, +2), self-test 17/17 |
 
 ### 3. Rejestr aktywnej sesji CarPlay
 
