@@ -1,14 +1,14 @@
 # OpenSpec task status (generated)
 
-Generated 2026-10-12 23:57. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-13 00:05. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 74/174 tasks complete across 5 changes.**
+**Overall: 74/175 tasks complete across 5 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 40/66 | 2026-10-12 |
+| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 40/67 | 2026-10-13 |
 | [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-10-05 |
 | [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-10-05 |
 | [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 7/39 | 2026-10-05 |
@@ -19,7 +19,7 @@ Generated 2026-10-12 23:57. Regenerate with `python notes/gen_openspec_status.py
 
 ## carplay-okna-projektow
 
-`40/66` tasks complete.
+`40/67` tasks complete.
 
 ### 1. PoC gating — Siri Shortcut odtwarza audio z HTTPS tailnetu w CarPlay
 
@@ -95,6 +95,7 @@ Generated 2026-10-12 23:57. Regenerate with `python notes/gen_openspec_status.py
 | [x] | 2c.14 **Z26 FIX KRYT 2**: `_car_stop` miał `outcome="timeout"` dla `rc != 0` bez TimeoutExpired. Fix 2026-10-13 noc: osobny `except subprocess.TimeoutExpired` → `outcome="timeout"` 200 OK; `rc != 0` bez timeoutu → `outcome="error"` 200 OK + pole `rc`. Spec rozszerzony: enum `sent\|resolved\|ambiguous\|missing\|refused\|error\|timeout`. **Mutation test** (ZASADY 4.4 druga połowa): nowy pytest `test_stop_rc_nonzero_zwraca_outcome_error_nie_timeout` używający `monkeypatch` dla `subprocess.run` z `rc=1`. Mutation: zamiana `"error"` → `"timeout"` → test PADŁ (`E - error / E + timeout`), kod przywrócony. **99 pytest passed** (było 98, +1) |
 | [x] | 2c.15 **PREREJESTRACJA Z27** w commit przed kodem. ZASADY 3.3 zachowane |
 | [x] | 2c.16 **Z27 FIX**: `POST /api/car/rotate_token` zbudowany. `secrets.token_hex(32)` → nowy token, zapis atomowy `tmp + os.replace`, odpowiedź JSON `{token, rotated_at, token_hash (sha256[:8])}`. **Nie loguje tokena**, tylko `rotated_at` i hash prefix. **Odczyt per-request z dysku** (bez cache w pamięci — rotacja działa bez restartu). **2 pytesty**: integracyjny (3 asercje: stary→401, nowy→200, plik zmieniony przez `_car_rotate_token` na FakeHandler) + atomowości (symulacja wyjątku przed `os.replace` → stary token dalej w pliku). **Mutation**: `os.replace` usunięty → test padł z `assert nowy in nowe_tokeny` (nowy token nie w pliku). Kod przywrócony. **Live test**: rotacja z backupem — ROTACJA OK (hash 05e2b7db), stary→401, nowy→200, backup przywrócony dla HA. **Fix uboczny**: `load_car_tokens(path=None)` lazy lookup (było `path=CAR_TOKEN_PATH` — monkeypatch nie działał, odkryte przez test). **101 pytest** (było 99, +2), self-test 17/17 |
+| [ ] | 2c.17 **PREREJESTRACJA Z28** (przed implementacją, ZASADY 3.3): wrapper `_resolve_window_with_aliases(query)` używa aliasów z Orchestratora (`GET /api/projects`, cache TTL 600 s, HTTP timeout 2 s, 5xx/timeout → fallback do starego cache lub `okna.resolve` solo, 4xx → log + wyjątek do góry — bo to konfig błąd, nie cichy fallback). **Hipoteza**: redukuje do zera odsetek `project=None` dla fraz z `poc/aliases.json`, bez zmiany zachowania dla fraz spoza aliases. **Dane testu**: - **Zbiór A (39 par)**: 3 frazy × 13 projektów z `poc/aliases.json` (fraza → kanon) - **Zbiór B (10 literalnych fraz, zadeklarowanych PRZED implementacją — nie generowane dynamicznie)**: 1. `jakis losowy projekt` 2. `cos czego nie ma` 3. `panda` 4. `prosze o pomoc` 5. `co teraz` 6. `kot domowy` 7. `programowanie w rust` 8. `wczoraj spadal snieg` 9. `nic takiego` 10. `siedem dziewiec` - **Statystyka**: M1 = ile z 39 par rozwiązuje się do kanonicznej (próg **39/39**); M2 = ile z 10 fraz zbioru B zachowuje puste zwroty (próg **10/10**) - **Kontrola odtworzenia P2 (ZASADY 5.3)**: skrypt pomiarowy **odmawia uruchomienia** gdy wrapper z pustym cache aliasów nie zwraca identycznych wyników co `okna.resolve` solo dla wszystkich 49 fraz (A ∪ B) - **Liczba porównań**: 1 (wrapper vs status quo) - **Warunek NEGATYWU**: M1 < 39/39 albo M2 < 10/10 → przerywam, nie stroję do magic konstanty - **Wynik NIE uprawnia**: do „fuzzy ogólnie lepszy"; do opinii o rzeczywistych frazach z auta (tylko syntetyczne); do frontu HA Assist ani Siri; do opinii o aliasach wielokomponentowych w kanonie |
 
 ### 3. Rejestr aktywnej sesji CarPlay
 
