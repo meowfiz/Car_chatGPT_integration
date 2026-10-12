@@ -1,20 +1,176 @@
 # OpenSpec task status (generated)
 
-Generated 2026-09-22 18:35. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-12 22:39. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 34/108 tasks complete across 4 changes.**
+**Overall: 53/151 tasks complete across 5 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-09-22 |
-| [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 7/39 | 2026-09-22 |
-| [ask-core-client](changes/ask-core-client/tasks.md) | 1/16 | 2026-09-16 |
-| [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-09-16 |
+| [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 19/43 | 2026-10-12 |
+| [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-10-05 |
+| [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-10-05 |
+| [poc-carplay-command](changes/poc-carplay-command/tasks.md) | 7/39 | 2026-10-05 |
+| [ask-core-client](changes/ask-core-client/tasks.md) | 1/16 | 2026-10-05 |
 
 
 ---
+
+## carplay-okna-projektow
+
+`19/43` tasks complete.
+
+### 1. PoC gating — Siri Shortcut odtwarza audio z HTTPS tailnetu w CarPlay
+
+| Done | Task |
+|---|---|
+| [x] | 1.1 Jednorazowy skrót iOS „CarPlay audio test": `GET` endpoint `/api/car/test-audio` (zwraca `audio/mpeg` edge-tts z „test glosu w aucie"), `Get Contents of URL`, `Play Sound`. Instrukcja krok po kroku w `notes/HANDOFF_carplay_okna.md` (sekcja 1.1) |
+| [x] | 1.2 Tymczasowy endpoint `/api/car/test-audio` w `project_integration/tools/voice_gateway.py` (nie `monitor/` — tam go nie ma; `pack/` dostanie go dopiero po PoC); edge-tts generuje audio on-demand (`speak_edge(CAR_TEST_TEXT)`), żadnego trzymania pliku w repo. Bind dziedziczony z bramki (tailnet-only przez `discover_tls()`), bez tokenu w PoC, oznaczony `# TODO: usunac po PoC` |
+| [ ] | 1.3 Pomiar na postoju: 3 próby „Hey Siri, CarPlay audio test" z telefonu z CarPlay podpiętym po USB; zapis do HANDOFF kolumn: nr, start, odtworzone (tak/nie), opóźnienie [s], jakość (zrozumiałe/zniekształcone), uwagi |
+| [x] | 1.4 Decyzja PoC (2026-10-12): **Skrót A urywa** (user słyszał „test" zamiast „test głosu w aucie"), **Skrót B dociąga** ale głos systemowy Siri. Zapis w HANDOFF jako „ograniczenie techniczne CarPlay" (ZASADY 5.8). **Nowa decyzja** (D10 w design.md): porzucamy Siri Shortcut jako wejście, przełączamy na HA Assist w CarPlay. Grupa 2 (`/api/car/command`) **PORZUCONA**, zastępuje ją nowa grupa 1.5 (HA Assist) i przerobiona grupa 2 (`/api/car/dispatch`). |
+
+### 1.5 Przełączenie wejścia na HA Assist w CarPlay (2026-10-12, po D10)
+
+| Done | Task |
+|---|---|
+| [x] | 1.5.1 HA Claude w oknie `HA`: dodać kafelek **Assist** jako Quick Access w CarPlay (HA Companion → ustawienia → CarPlay), zweryfikować lokalny pipeline PL + VCC głos Sznuka — potwierdzone w kuchni, pełne zdanie bez cięć |
+| [x] | 1.5.2 Rozszerzenie `voice/claude_sentences_pl.yaml` o intent `DispatchClaude` z frazami: „Claude do okna {pytanie}", „Claude w oknie {pytanie}", „Claude otwórz okno {pytanie}", „Claude kontynuuj {pytanie}", „Claude dalej {pytanie}". Wildcard na całość (po stronie bramki `parse_car_prompt` wyciąga nazwę projektu i resztę) |
+| [x] | 1.5.3 **Nieaktualne** — aliasy zrobione w `parse_car_prompt` przez wywołanie `okna.resolve` (fuzzy exact→prefix→substring), bez osobnego pliku. `monitor_repos.env` jest jedynym źródłem prawdy. Pominięte świadomie |
+| [x] | 1.5.4 `voice/rest_command_claude.yaml` — nowy wpis `claude_dispatch` POST do `/api/car/dispatch` z `Authorization: !secret car_token_header`, body `{session_id (= conversation_id), project: "", prompt: pytanie}`. Czeka na HA stronę: wklejenie secretu i reload |
+| [ ] | 1.5.5 Seria C pomiarowa w aucie (3 próby „test głosu w aucie" przez kafelek Assist w CarPlay) — tabela w `HANDOFF_carplay_okna.md`. **Jedyny PoC-gating dla reszty zmiany po D10:** < 2/3 pełnego dociągu → wracamy do design, dalsze grupy nie rozpoczynają się |
+| [ ] | 1.5.6 Dla PoC seria C **wystarczy fraza stała HA** („test głosu w aucie" → TTS „test głosu w aucie") — nie potrzebujemy jeszcze pełnego dyspozytora z 1.5.2–1.5.4; te dochodzą po zdaniu bramki |
+
+### 2. Endpoint `/api/car/dispatch` w bramce (zastępuje stary `/api/car/command` po D10)
+
+| Done | Task |
+|---|---|
+| [x] | 2.1 Szkielet endpointu `POST /api/car/dispatch` w `project_integration/tools/voice_gateway.py`: JSON `{session_id, project, prompt}`, Bearer token z `~/.claude/car_tokens.json`, odpowiedź JSON `{text, outcome, resolved_project?}`. Smoke test z pecetu 2026-10-12: `project_integration` 5.2 s, fuzzy `project integration` 6.5 s, sticky session reuse 5.3 s, timeout obsłużony |
+| [x] | 2.2 Parser `parse_car_prompt(prompt, resolve_fn)` w bramce (nie w HA — HA wysyła całość jako wildcard `{pytanie}`, bo Speech-to-Phrase nie zna nazw projektów). Rozpoznaje: `kontynuuj X` → mode=continue, `<1-3 slow nazwa> <reszta>` → dispatch, sama nazwa → set_only, nic → fallback do sticky. 8 testów jednostkowych |
+| [x] | 2.3 Resolve nazwy projektu wywołuje `okna.resolve` jako sanity check aliasu z HA; `missing`/`ambiguous` zwrot w JSON. Smoke: `panda` → `missing` (0.03 s), `rib` → `RibnXtr2026` (single match) |
+| [x] | 2.4 Transport do pane: **reuse `cli_bridge.type_into`** (load-buffer + paste-buffer + Enter, polskie znaki bez kodowania przez CLI). Zero duplikacji — ta sama funkcja, co dispatch worker |
+| [x] | 2.5 Zwrot `Glosowo:` z pane: pętla `cli_bridge.capture` + `extract_reply` + `spoken_lines` co 500 ms, do pierwszej linii nowszej niż `before` lub timeout 30 s. Reuse z `cli_bridge` |
+| [x] | 2.6 Pole `text` w JSONie = pierwsza linia `Glosowo:` **bez prefiksu** (robi `spoken_lines`), outcome `sent`/`timeout`/`missing`/`ambiguous`/`refused` |
+| [x] | 2.7 Testy jednostkowe `project_integration/tools/tests/test_car_dispatch.py`: 26 passed + 1 świadomy skip. Pokrywa: `should_refuse_car` 11 wzorców + 2 normalizacje spacji, `car_sessions_*` set/get/expire/overwrite, `load_car_tokens` BOM UTF-8/rotacja/short/malformed/missing |
+| [x] | 2.8 Smoke test integracyjny z pecetu: 4 przypadki OK: `missing` (0.03 s), `refused` (0.02 s), `no token` → 401, dispatch do `project_integration` sticky session (5.2–6.5 s) |
+
+### 2a. Rozszerzone endpointy funkcjonalne (sprint 2026-10-12)
+
+| Done | Task |
+|---|---|
+| [x] | 2a.1 `GET /api/car/status` — agreguje `/api/state`, zwraca Głosowo tekst z liczbami. Smoke: 22 projekty, 182 zadania otwarte, 1 niewypchnięty, 3 pracujące |
+| [x] | 2a.2 `POST /api/car/open` body `{project}` — subprocess do `tools/okno.py`, idempotentne, zwraca „otwieram X" lub „okno X juz dziala". Smoke: `voice` otwarte w 5.5 s |
+| [x] | 2a.3 `GET /api/car/project/<name>/summary` — fuzzy przez `okna.resolve`, agreguje rekord z `/api/state`. Smoke: `car integration` → `Car_chatGPT_integration`, `HA` → stan 2 z 19 otwartych |
+| [x] | 2a.4 **4-ty tier w `okna.resolve`: token-match** — gdy query ma ≥ 2 słowa, dopasowanie jeśli każdy token jest podciągiem znormalizowanej nazwy. Potrzebne dla „car integration" vs `Car_chatGPT_integration`. 4 nowe testy przeszły, cała suita 74/75 |
+
+### 3. Rejestr aktywnej sesji CarPlay
+
+| Done | Task |
+|---|---|
+| [ ] | 3.1 Moduł `project_integration/monitor/carplay_sessions.py`: `load()`, `set_active(session_id, project)`, `get_active(session_id, now)` z wygaśnięciem po 600 s, `mark_pending(session_id)`; lock przez `monitor/lockutil.py` |
+| [ ] | 3.2 Integracja z endpointem: po parse zapis / odczyt rejestru; `X-Dispatch-Outcome: resolved` dla formy 1 |
+| [ ] | 3.3 Testy w `tests/test_carplay_sessions.py`: wygaśnięcie, `pending` po timeout, odnowienie przy użyciu formy 3 |
+| [ ] | 3.4 Smoke test z komputera: cztery sekwencyjne POST z tym samym `X-Session-Id`: (a) „projekt car integration", (b) „pokaz git status", (c) „projekt car history", (d) „co tam" — sprawdzić, że (b) idzie do car_chatgpt_integration, (d) do car_history |
+
+### 4. Odmowy i log mijanek
+
+| Done | Task |
+|---|---|
+| [ ] | 4.1 Lista słów kluczowych w `car_parser.py` (reuse jeśli istnieje w `voice_gateway`, inaczej dołożyć stałą `REFUSE_PATTERNS`); funkcja `should_refuse(text) -> (bool, matched_pattern)` |
+| [ ] | 4.2 Zapisy odmów do `project_files/run_files/carplay_refusals.jsonl` i mijanek do `project_files/run_files/carplay_misses.jsonl` (jeden JSON na linię: `ts`, `session_id`, `transcript`, `candidates`, `pattern`); dopisywanie z lockiem na pliku |
+| [ ] | 4.3 Testy odmowy: dla każdego wzorca z listy — jeden test; sprawdzian, że `send-keys` nie został wywołany (mock `subprocess.run`) |
+
+### 5. Token wspólny HA ↔ bramka (po D10 — zastąpiło Shortcut iOS)
+
+| Done | Task |
+|---|---|
+| [ ] | 5.1 Wygenerować wspólny token: `python -c "import secrets; print(secrets.token_hex(32))"`; zapisać w **obu** maszynach do `~/.claude/car_tokens.json` jako `{"token": "<hex>", "created": "<iso>"}` |
+| [ ] | 5.2 Endpoint `/api/car/dispatch` czyta plik tokenów przy starcie bramki (funkcja `load_car_tokens()`); 401 gdy nagłówek `Authorization: Bearer <token>` nie pasuje |
+| [ ] | 5.3 HA Claude: wartość tokenu w `rest_command_claude.yaml` jako `!secret car_token`, odpowiedni wpis w `secrets.yaml` na Pi |
+| [ ] | 5.4 Dokumentacja rotacji w `notes/HANDOFF_carplay_okna.md`: jak podmienić token w obu miejscach bez przerwy > 60 s |
+
+### 6. Prerejestracja i pomiar w jeździe
+
+| Done | Task |
+|---|---|
+| [ ] | 6.1 PREREJESTRACJA (przed jazdą, ZASADY 3.3): hipoteza „≥ 7/10 udanych prób, mediana `koniec dyktowania → pierwsze słowo z głośnika` ≤ 20 s, ≥ 8/10 poprawnych transkrypcji nazwy projektu i promptu łącznie"; pytania: po jednym do trzech projektów (`Car_chatGPT_integration`, `project_integration`, `HA`), każde 3 razy, plus 1 test wygaśnięcia sesji po 11 min; definicja udanej próby = `send-keys` wykonany do właściwego projektu i `Glosowo:` dotarł audio zrozumiałym po polsku; **jedna** statystyka: mediana łącznego czasu; **liczba testowanych porównań: 1** (tylko ścieżka główna, nie porównujemy wariantów); poprawka na wielokrotność niepotrzebna; konfuzje: zasięg LTE/5G (zapis mocy sygnału przed każdą próbą), prędkość (zapis GPS), model TTS (`voice_choice.json` zamrożony); **warunek NEGATYWU**: mediana > 30 s albo udane < 5/10 ⇒ odrzucenie i powrót do design; **czego wynik NIE uprawnia**: nie mówi nic o rozmowie wieloturowej z pamięcią kontekstu, o poleceniach wymagających „yes/no" ani o jakości TTS poza polskim |
+| [ ] | 6.2 Zasilanie peceta w pracy aktywne (`poc-carplay-command 1.7`); maszyna z tmux-ami 22 projektów nie zasnęła przez 2 h przed pomiarem (zapis `powercfg /requests`) |
+| [ ] | 6.3 Jazda pomiarowa: ≥ 10 prób, ≥ 3 próby przy prędkości ≥ 70 km/h; tabela w `notes/HANDOFF_carplay_okna.md` z kolumnami: nr, pytanie, projekt rozpoznany, transkrypcja (OK/pomyłka), outcome (`sent`/`ambiguous`/`missing`/`refused`/`timeout`), t_dyktowanie [s], t_odpowiedz [s], prędkość [km/h], LTE/5G, uwagi |
+| [ ] | 6.4 Opracowanie: policzyć statystyki, każdą nieudaną próbę przypisać do warstwy (Siri / Whisper / parser / resolve / send-keys / capture-pane / TTS / sieć); wpis negatywów jako negatywów (ZASADY 5.8) |
+| [ ] | 6.5 Decyzja PoC (ZASADY 5.1): zaliczony / negatywny; wpis do HANDOFF; rekomendacja — czy iść dalej do iteracji drugiej (otwieranie okien głosem, polecenia yes/no), czy czekać |
+
+### 7. Zamknięcie zmiany
+
+| Done | Task |
+|---|---|
+| [ ] | 7.1 Usunięcie tymczasowego endpointu `/api/car/test-audio` z kroku 1.2; sprawdzian `grep -n "test-audio" project_integration/monitor/voice_gateway.py` |
+| [ ] | 7.2 Notatka sesji wg szablonu (ZASADY 1.1) z liczbami z 6.3 |
+| [ ] | 7.3 Aktualizacja `notes/start.md` sekcja „Ostatnia sesja" |
+| [ ] | 7.4 `python notes/gen_openspec_status.py` → commit zaktualizowanego `openspec/STATUS.md` |
+| [ ] | 7.5 Prośba o archiwum zmiany po pomiarze: `/opsx:archive carplay-okna-projektow` (wywołuje użytkownik) |
+
+## voice-intent
+
+`26/29` tasks complete.
+
+### 1. Schemat i dane
+
+| Done | Task |
+|---|---|
+| [x] | 1.1 Schemat intencji v1 opisany w `design.md` i w specyfikacji (`intent`, `repo`, `text`, `limit_zdan`, `v`); uzasadnienie kazdego pola, w tym dlaczego `text` zostaje cala wypowiedzia |
+| [x] | 1.2 `poc/aliases.json`: tablica aliasow jako **dane** (klucz = nazwa kanoniczna repo, wartosc = mowione warianty), z `min_ratio` i wersja pliku; dodanie projektu nie wymaga zmiany kodu |
+| [x] | 1.3 Nazwy kanoniczne czytane z `~/.claude/monitor_repos.env` (jedno zrodlo prawdy); alias wskazujacy na nieznane repo wypisywany przy starcie jako ostrzezenie, nie ignorowany po cichu |
+
+### 2. Parser deterministyczny
+
+| Done | Task |
+|---|---|
+| [x] | 2.1 `poc/intent.py`: `normalize()` (male litery, polskie znaki na ASCII, tylko `[a-z0-9 ]`) — wspolna podstawa wszystkich porownan |
+| [x] | 2.2 `match_repo()`: dopasowanie aliasu po n-gramach slow o dlugosci aliasu, `difflib.SequenceMatcher`, prog `min_ratio` z pliku danych; zwraca `(repo, powod)` gdzie powod to `exact` / `fuzzy` / `explicit-all` / `ambiguous` / `no-match` (dwa repo blizej niz 0,02 od siebie to nie decyzja, tylko rzut moneta -> `*`) |
+| [x] | 2.3 `parse_limit()`: „w jednym/dwoch/trzech/czterech/pieciu zdaniach" oraz cyfry („w 2 zdaniach"); brak liczby = `None`, bez zgadywania z „krotko" |
+| [x] | 2.4 `parse()`: slowa kluczowe intencji (`note`, `queue`), domyslnie `ask`; zwraca pelna strukture v1 |
+| [x] | 2.5 Zero dodatkowych wywolan modelu — decyzja i jej uzasadnienie w `design.md` („Rezerwa modelowa") |
+
+### 3. Wpiecie w most
+
+| Done | Task |
+|---|---|
+| [x] | 3.1 `ask_server.py` wola `intent.parse()` po transkrypcji, przed `ask_claude` |
+| [x] | 3.2 `intent: note \| queue` -> HTTP 200 z jednym zdaniem odmowy po polsku (skrot czyta tresc, nie kod bledu); wpis w logu |
+| [x] | 3.3 Rozpoznane `repo` zaweza zakres: `claude -p` startuje w tym katalogu i nie dostaje `--add-dir` do pozostalych |
+| [x] | 3.4 Instrukcja zakresu w prompcie: odpowiedz zaczyna sie od nazwy repozytorium (zamiast pytania potwierdzajacego); limit zdan doklejany, gdy podany |
+| [x] | 3.5 Log zapisuje `intent`, `repo` i **powod** dopasowania (`explicit-all` vs `no-match` to dwie rozne rzeczy, inaczej nie da sie policzyc trafnosci) |
+| [x] | 3.6 Odpowiedz `?format=json` niesie strukture intencji, zeby dalo sie mierzyc bez czytania logu |
+
+### 4. Testy nazywajace porazke (ZASADY 4.4)
+
+| Done | Task |
+|---|---|
+| [x] | 4.1 Fixture wypowiedzi `project_files/python/tests/fixtures/wypowiedzi.json` z jawnym polem `zrodlo`: `log` (prawdziwa transkrypcja Whispera) albo `syntetyczna` (napisana recznie) |
+| [x] | 4.2 Test: prawdziwa transkrypcja „Carcha gpt integration" trafia w `Car_chatGPT_integration` — porazka, ktorej zapobiega: parser dzialajacy tylko na poprawnie wymowionych nazwach |
+| [x] | 4.3 Test: „zanotuj..." nie jest pytaniem, a odmowa nie ma kodu bledu — porazka: cicha zamiana zapisu w pytanie |
+| [x] | 4.4 Test: brak dopasowania daje `*` z powodem `no-match`, a „wszystkie projekty" daje `*` z powodem `explicit-all` — porazka: pomiar trafnosci liczacy nierozpoznanie jako sukces |
+| [x] | 4.5 Test: alias spoza mapy repozytoriow jest raportowany, a parser dziala dalej |
+| [x] | 4.6 Sprawdzenie mutacja kazdego z powyzszych (wprowadz blad z powrotem, test ma paść) i zapis wyniku w notatce sesji |
+
+### 5. Pomiar (PREREJESTRACJA przed przebiegiem, ZASADY 3.3)
+
+| Done | Task |
+|---|---|
+| [x] | 5.1 **PREREJESTRACJA — trafnosc rozpoznania repozytorium.** *Hipoteza:* reguly + aliasy rozpoznaja wlasciwe repozytorium w **>= 80%** wypowiedzi, w ktorych projekt jest nazwany, przy odsetku falszywych trafien **<= 10%**. *Dane:* fixture `wypowiedzi.json`, **>= 40 wypowiedzi**, w tym >= 5 na kazde repo z mapy maszyny i >= 8 bez nazwanego projektu; kazda wypowiedz ma pole `zrodlo`. *Wykluczenia:* wypowiedzi, w ktorych czlowiek sam nie potrafi wskazac projektu, sa oznaczone `oczekiwane: "*"`, a nie usuwane. *Definicja etykiety:* trafienie = `repo` rowne `oczekiwane`; falszywe trafienie = `repo` to konkretne repo, a `oczekiwane` bylo inne albo `*`; uczciwe `*` nie jest trafieniem ani falszem. *Jedna statystyka:* odsetek trafien; druga (falszywe trafienia) jest **warunkiem bezpieczenstwa**, nie druga hipoteza. *Liczba testowanych porownan:* **1** (jeden prog `min_ratio` = 0,82 zadeklarowany z gory). Strojenie progu po zobaczeniu wynikow = dopasowanie do fixture i musi zostac zapisane jako takie. *Konfuzje do zmierzenia:* udzial wypowiedzi `zrodlo: log` w zbiorze (fixture napisany przy biurku jest latwiejszy niz mowa w aucie) i dlugosc aliasu (aliasy jednoslowne falszuja latwiej). *Warunek NEGATYWU:* trafnosc < 70% albo falszywe trafienia > 10% -> `repo` zostaje na stale `*`, konczymy i nie szukamy trzeciej heurystyki. *Czego wynik NIE uprawnia:* niczego o mowie w jadacym aucie — fixture to tekst, nie nagrania; liczba z prawdziwych nagran moze byc tylko gorsza. |
+| [x] | 5.2 **PREREJESTRACJA — czy zawezenie zakresu skraca odpowiedz.** *Hipoteza:* przy rozpoznanym repozytorium mediana pelnej petli spada wobec zakresu „wszystkie". *Dane:* 10 pytan (5 par: to samo pytanie z zawezeniem i bez), ta sama maszyna, model bez zmian. *Jedna statystyka:* mediana czasu pelnej petli. *Liczba porownan:* 1. *Warunek NEGATYWU:* mediana nie spada albo rosnie -> zawezenie zostaje (mniejsza szansa na odpowiedz z cudzego repo), ale **nie wolno** go opisywac jako przyspieszenia. *Czego wynik NIE uprawnia:* zdania „zadanie 2.7 zrobione" — to osobny pomiar na innym zakresie. |
+| [x] | 5.3 Przebieg 5.1 na fixturze i zapis liczb (trafienia, falszywe trafienia, rozbicie wg `zrodlo`) |
+| [x] | 5.4 Przebieg 5.2 na tej maszynie i zapis liczb obok pomiarow z `notes/HANDOFF_most_pytan.md` **Wynik NEGATYWNY zgodnie z zadeklarowanym warunkiem**: mediana 14,0 s (zawezony) wobec 14,2 s (wszystkie), n=5+5 — roznica tonie w rozrzucie 11,8–25,2 s. Zawezenie zostaje jako ochrona przed odpowiedzia z cudzego drzewa i **nie jest** opisywane jako przyspieszenie. |
+| [ ] | 5.5 **Slabe aliasy zmierzone 2026-09-16, poprawka wymaga drugiego pomiaru.** Przebieg 5.3 pokazal dwa aliasy, ktore lapia zwykle polskie zdania: `projekt car` trafia w „ktory **projekt** ma najwiecej otwartych zadan" (jedyne falszywe trafienie), a `kazdy projekt` z listy `wszystkie` trafia w „**czy projekt** integracji projektow ma cos pilnego". Usuniecie ich po zobaczeniu wynikow jest **strojeniem do fixture** (ZASADY 5.4) — dlatego: (1) najpierw dopisac >= 10 nowych wypowiedzi, ktore tego nie dotycza, (2) potem zmienic aliasy, (3) potem przemierzyc, i zapisac obie liczby obok siebie jako **drugie** porownanie, jawnie policzone |
+| [ ] | 5.6 Nagrac >= 10 prawdziwych wypowiedzi przez `/ask` i dopisac transkrypcje do fixture z `zrodlo: log`; powtorzyc 5.1 i porownac z wersja syntetyczna |
+
+### 6. Domkniecie
+
+| Done | Task |
+|---|---|
+| [x] | 6.1 Notatka sesji z liczbami i `notes/start.md` (regula 1.1) |
+| [x] | 6.2 `python notes/gen_openspec_status.py` |
+| [ ] | 6.3 `notes/HANDOFF_most_pytan.md`: akapit o warstwie intencji i o tym, jak dodac projekt (jeden wpis w `poc/aliases.json`) |
 
 ## voice-grok-front
 
@@ -191,66 +347,3 @@ Generated 2026-09-22 18:35. Regenerate with `python notes/gen_openspec_status.py
 |---|---|
 | [ ] | 5.1 Notatka sesji z liczbami (przed/po) i wpis w `notes/start.md` |
 | [ ] | 5.2 Zaznaczyć w `project_integration/openspec/changes/ask-core/tasks.md` zadania 2.2 i 2.3 jako zrobione po stronie klienta |
-
-## voice-intent
-
-`26/29` tasks complete.
-
-### 1. Schemat i dane
-
-| Done | Task |
-|---|---|
-| [x] | 1.1 Schemat intencji v1 opisany w `design.md` i w specyfikacji (`intent`, `repo`, `text`, `limit_zdan`, `v`); uzasadnienie kazdego pola, w tym dlaczego `text` zostaje cala wypowiedzia |
-| [x] | 1.2 `poc/aliases.json`: tablica aliasow jako **dane** (klucz = nazwa kanoniczna repo, wartosc = mowione warianty), z `min_ratio` i wersja pliku; dodanie projektu nie wymaga zmiany kodu |
-| [x] | 1.3 Nazwy kanoniczne czytane z `~/.claude/monitor_repos.env` (jedno zrodlo prawdy); alias wskazujacy na nieznane repo wypisywany przy starcie jako ostrzezenie, nie ignorowany po cichu |
-
-### 2. Parser deterministyczny
-
-| Done | Task |
-|---|---|
-| [x] | 2.1 `poc/intent.py`: `normalize()` (male litery, polskie znaki na ASCII, tylko `[a-z0-9 ]`) — wspolna podstawa wszystkich porownan |
-| [x] | 2.2 `match_repo()`: dopasowanie aliasu po n-gramach slow o dlugosci aliasu, `difflib.SequenceMatcher`, prog `min_ratio` z pliku danych; zwraca `(repo, powod)` gdzie powod to `exact` / `fuzzy` / `explicit-all` / `ambiguous` / `no-match` (dwa repo blizej niz 0,02 od siebie to nie decyzja, tylko rzut moneta -> `*`) |
-| [x] | 2.3 `parse_limit()`: „w jednym/dwoch/trzech/czterech/pieciu zdaniach" oraz cyfry („w 2 zdaniach"); brak liczby = `None`, bez zgadywania z „krotko" |
-| [x] | 2.4 `parse()`: slowa kluczowe intencji (`note`, `queue`), domyslnie `ask`; zwraca pelna strukture v1 |
-| [x] | 2.5 Zero dodatkowych wywolan modelu — decyzja i jej uzasadnienie w `design.md` („Rezerwa modelowa") |
-
-### 3. Wpiecie w most
-
-| Done | Task |
-|---|---|
-| [x] | 3.1 `ask_server.py` wola `intent.parse()` po transkrypcji, przed `ask_claude` |
-| [x] | 3.2 `intent: note \| queue` -> HTTP 200 z jednym zdaniem odmowy po polsku (skrot czyta tresc, nie kod bledu); wpis w logu |
-| [x] | 3.3 Rozpoznane `repo` zaweza zakres: `claude -p` startuje w tym katalogu i nie dostaje `--add-dir` do pozostalych |
-| [x] | 3.4 Instrukcja zakresu w prompcie: odpowiedz zaczyna sie od nazwy repozytorium (zamiast pytania potwierdzajacego); limit zdan doklejany, gdy podany |
-| [x] | 3.5 Log zapisuje `intent`, `repo` i **powod** dopasowania (`explicit-all` vs `no-match` to dwie rozne rzeczy, inaczej nie da sie policzyc trafnosci) |
-| [x] | 3.6 Odpowiedz `?format=json` niesie strukture intencji, zeby dalo sie mierzyc bez czytania logu |
-
-### 4. Testy nazywajace porazke (ZASADY 4.4)
-
-| Done | Task |
-|---|---|
-| [x] | 4.1 Fixture wypowiedzi `project_files/python/tests/fixtures/wypowiedzi.json` z jawnym polem `zrodlo`: `log` (prawdziwa transkrypcja Whispera) albo `syntetyczna` (napisana recznie) |
-| [x] | 4.2 Test: prawdziwa transkrypcja „Carcha gpt integration" trafia w `Car_chatGPT_integration` — porazka, ktorej zapobiega: parser dzialajacy tylko na poprawnie wymowionych nazwach |
-| [x] | 4.3 Test: „zanotuj..." nie jest pytaniem, a odmowa nie ma kodu bledu — porazka: cicha zamiana zapisu w pytanie |
-| [x] | 4.4 Test: brak dopasowania daje `*` z powodem `no-match`, a „wszystkie projekty" daje `*` z powodem `explicit-all` — porazka: pomiar trafnosci liczacy nierozpoznanie jako sukces |
-| [x] | 4.5 Test: alias spoza mapy repozytoriow jest raportowany, a parser dziala dalej |
-| [x] | 4.6 Sprawdzenie mutacja kazdego z powyzszych (wprowadz blad z powrotem, test ma paść) i zapis wyniku w notatce sesji |
-
-### 5. Pomiar (PREREJESTRACJA przed przebiegiem, ZASADY 3.3)
-
-| Done | Task |
-|---|---|
-| [x] | 5.1 **PREREJESTRACJA — trafnosc rozpoznania repozytorium.** *Hipoteza:* reguly + aliasy rozpoznaja wlasciwe repozytorium w **>= 80%** wypowiedzi, w ktorych projekt jest nazwany, przy odsetku falszywych trafien **<= 10%**. *Dane:* fixture `wypowiedzi.json`, **>= 40 wypowiedzi**, w tym >= 5 na kazde repo z mapy maszyny i >= 8 bez nazwanego projektu; kazda wypowiedz ma pole `zrodlo`. *Wykluczenia:* wypowiedzi, w ktorych czlowiek sam nie potrafi wskazac projektu, sa oznaczone `oczekiwane: "*"`, a nie usuwane. *Definicja etykiety:* trafienie = `repo` rowne `oczekiwane`; falszywe trafienie = `repo` to konkretne repo, a `oczekiwane` bylo inne albo `*`; uczciwe `*` nie jest trafieniem ani falszem. *Jedna statystyka:* odsetek trafien; druga (falszywe trafienia) jest **warunkiem bezpieczenstwa**, nie druga hipoteza. *Liczba testowanych porownan:* **1** (jeden prog `min_ratio` = 0,82 zadeklarowany z gory). Strojenie progu po zobaczeniu wynikow = dopasowanie do fixture i musi zostac zapisane jako takie. *Konfuzje do zmierzenia:* udzial wypowiedzi `zrodlo: log` w zbiorze (fixture napisany przy biurku jest latwiejszy niz mowa w aucie) i dlugosc aliasu (aliasy jednoslowne falszuja latwiej). *Warunek NEGATYWU:* trafnosc < 70% albo falszywe trafienia > 10% -> `repo` zostaje na stale `*`, konczymy i nie szukamy trzeciej heurystyki. *Czego wynik NIE uprawnia:* niczego o mowie w jadacym aucie — fixture to tekst, nie nagrania; liczba z prawdziwych nagran moze byc tylko gorsza. |
-| [x] | 5.2 **PREREJESTRACJA — czy zawezenie zakresu skraca odpowiedz.** *Hipoteza:* przy rozpoznanym repozytorium mediana pelnej petli spada wobec zakresu „wszystkie". *Dane:* 10 pytan (5 par: to samo pytanie z zawezeniem i bez), ta sama maszyna, model bez zmian. *Jedna statystyka:* mediana czasu pelnej petli. *Liczba porownan:* 1. *Warunek NEGATYWU:* mediana nie spada albo rosnie -> zawezenie zostaje (mniejsza szansa na odpowiedz z cudzego repo), ale **nie wolno** go opisywac jako przyspieszenia. *Czego wynik NIE uprawnia:* zdania „zadanie 2.7 zrobione" — to osobny pomiar na innym zakresie. |
-| [x] | 5.3 Przebieg 5.1 na fixturze i zapis liczb (trafienia, falszywe trafienia, rozbicie wg `zrodlo`) |
-| [x] | 5.4 Przebieg 5.2 na tej maszynie i zapis liczb obok pomiarow z `notes/HANDOFF_most_pytan.md` **Wynik NEGATYWNY zgodnie z zadeklarowanym warunkiem**: mediana 14,0 s (zawezony) wobec 14,2 s (wszystkie), n=5+5 — roznica tonie w rozrzucie 11,8–25,2 s. Zawezenie zostaje jako ochrona przed odpowiedzia z cudzego drzewa i **nie jest** opisywane jako przyspieszenie. |
-| [ ] | 5.5 **Slabe aliasy zmierzone 2026-09-16, poprawka wymaga drugiego pomiaru.** Przebieg 5.3 pokazal dwa aliasy, ktore lapia zwykle polskie zdania: `projekt car` trafia w „ktory **projekt** ma najwiecej otwartych zadan" (jedyne falszywe trafienie), a `kazdy projekt` z listy `wszystkie` trafia w „**czy projekt** integracji projektow ma cos pilnego". Usuniecie ich po zobaczeniu wynikow jest **strojeniem do fixture** (ZASADY 5.4) — dlatego: (1) najpierw dopisac >= 10 nowych wypowiedzi, ktore tego nie dotycza, (2) potem zmienic aliasy, (3) potem przemierzyc, i zapisac obie liczby obok siebie jako **drugie** porownanie, jawnie policzone |
-| [ ] | 5.6 Nagrac >= 10 prawdziwych wypowiedzi przez `/ask` i dopisac transkrypcje do fixture z `zrodlo: log`; powtorzyc 5.1 i porownac z wersja syntetyczna |
-
-### 6. Domkniecie
-
-| Done | Task |
-|---|---|
-| [x] | 6.1 Notatka sesji z liczbami i `notes/start.md` (regula 1.1) |
-| [x] | 6.2 `python notes/gen_openspec_status.py` |
-| [ ] | 6.3 `notes/HANDOFF_most_pytan.md`: akapit o warstwie intencji i o tym, jak dodac projekt (jeden wpis w `poc/aliases.json`) |
