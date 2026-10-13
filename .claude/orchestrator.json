@@ -1,0 +1,6 @@
+{
+  "execute": true,
+  "push": true,
+  "pr": true,
+  "max_files": 20
+}
