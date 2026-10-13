@@ -1,5 +1,18 @@
 # START — Car_chatGPT_integration
 
+## Ostatnia sesja — 2026-10-13 koniec (pauza na świeże tokeny)
+
+User po Z23-Z29 i analizie luk: „na razie pauza — zapisz i zakończ. jak będę miał świeże
+tokeny to odpalimy komplet na raz". Zarysowana wizja produktowa „intuicyjna rozmowa z autem"
+(jakie projekty / przełącz na X / krótki feedback / dopytaj co teraz / tak-nie / koniec).
+**6 ogniw brakuje**, podzielone na 4 OpenSpec changes do odpalenia naraz: Iter A `carplay-przelacznik-okien`
+(wait-ready + przełącz_na), Iter B `carplay-koniec-i-copytasz` (koniec + co_teraz),
+Iter C `carplay-potwierdzenie-glosowe` (tak/nie, a/b/c), Iter D warunkowa po pomiarze z auta
+(streaming Głosowo). Szczegóły, tabela luk, kryteria akceptacji w
+`notes/sesje/2026-10-12-carplay-ha-pilny-sprint.md` sekcja „Analiza luk".
+
+Pętla profesor-student zamknięta na prośbę usera. HEAD = origin dla obu repo.
+
 ## Ostatnia sesja — 2026-10-13 noc (sesja 5 kontynuacja: Z23-Z29 pętla profesor-student)
 
 **Z29 (3 części, ~1h) w profesorze-studencie**: Z29a mutation test wrappera Z28 — **4/4

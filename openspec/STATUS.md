@@ -1,6 +1,6 @@
 # OpenSpec task status (generated)
 
-Generated 2026-10-13 00:38. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-13 13:41. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
 **Overall: 77/182 tasks complete across 5 changes.**
 

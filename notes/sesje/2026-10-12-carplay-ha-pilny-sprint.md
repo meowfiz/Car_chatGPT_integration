@@ -352,6 +352,53 @@ sprawdzić obciążenie). Rozróżnienie było niemożliwe przed Z26.
 **ZASADY 5.9 (korekta w tej samej sesji)**: KRYT 2 wykryte w Z25, naprawione w Z26
 tej samej nocy. Nie zostawiamy do „jutra".
 
+### Analiza luk „intuicyjna rozmowa z autem" (2026-10-13 koniec)
+
+User po pauzie: „jak bede mial swieze tokeny to odpalimy komplet na raz". Zarysował wizję
+produktową, dla której trzeba domknąć 6 brakujących ogniw.
+
+**Co użytkownik chce (parafraza):** „jakie projekty" → recytacja; „przełącz na X" → sticky
++ otwórz jeśli trzeba + czekaj aż gotowe + „gotowe, co robimy"; w trakcie pracy krótki
+feedback głosowy; możliwość dopytania („co teraz robisz") bez zakłócania; pytania tak/nie
+albo A/B/C gdy niepewne; „koniec" → notatka + commit + push wg ZASADY 1.1 i 2.11;
+„przełącz na Y" wg tej samej ceremonii co X.
+
+**Co mamy (ok 75%)**: 12 endpointów + 12 intentów HA (zob. tabela
+`notes/HANDOFF_car_endpoints.md`), sticky session 10 min + `last_text`, odmowy pisujące,
+pomiar e2e p50 309 ms, TTS Sznuk na wszystkich komendach.
+
+**Czego brakuje — 6 ogniw** (każde osobny OpenSpec change w następnej sesji):
+
+| nr | luka | kryterium akceptacji (szkic prerejestracji) |
+|---|---|---|
+| 1 | `/api/car/open` nie czeka aż Claude Code gotowy w pane | poll `capture-pane` szukając znacznika gotowości (prompt `>` lub heartbeat label „idle"), max 30 s; test: pane bez Claude → pętla czeka → zwraca „gotowe" lub „nie dociąga, otworzyłem puste okno" |
+| 2 | brak jednej komendy „przełącz na X" | `/api/car/przelacz_na` body `{project}`: resolve → open-jeśli-trzeba → wait-ready (pkt 1) → set_active → `{text: "gotowe okno X, co robimy", outcome: "ready"}`; HA intent „Claude projekt X" / „Claude przełącz na X" |
+| 3 | brak dopytywania w trakcie długiej pracy | `/api/car/co_teraz` GET body `{session_id}` czyta ostatnie N linii `Głosowo:` z pane bez wysyłania promptu, zwraca `{text: "pracuje nad Y", outcome: "sent"}`; różni się od `powtorz` tym, że nie korzysta z `last_text`, czyta pane na żywo |
+| 4 | pytanie potwierdzające (tak/nie, a/b/c) | nowe pole `pending_confirmation` w `carplay_sessions.json` z `{question, options}`; user odpowiada „tak" / „nie" / „pierwsze" → bramka wkłada odpowiedź do pane i kontynuuje; HA intent `PotwierdzClaude` z {pytanie} → `/api/car/potwierdz` body `{session_id, answer}` |
+| 5 | brak triggera „koniec" | `/api/car/koniec` body `{session_id}`: wysyła do pane prompt `[glos] zrob notatke sesji ZASADY 1.1, commit i push przez bramki G1-G5`, kasuje sticky, zwraca `{text: "zapisuje i konczy"}`; HA intent „Claude koniec" / „Claude zapisz i zakończ" |
+| 6 | brak progresywnego `Głosowo:` streamingu | zmierzyć w aucie najpierw, warunkowo: HA automation co 15 s pyta `/api/car/co_teraz` podczas trwającego dispatcha; **nie implementujemy bez pomiaru** potwierdzającego że mediana czasu „ciszy przed pierwszym `Głosowo:`" > 30 s w ≥ 1/3 prób |
+
+**Plan 4 iteracji** (user: „odpalimy komplet"):
+- **Iter A** (~1 h): pkt 1 + pkt 2 — najgorszy brak dziś, bez tego „intuicyjne przełączanie"
+  nie działa. OpenSpec change `carplay-przelacznik-okien`.
+- **Iter B** (~45 min): pkt 5 + pkt 3 — zamyka pętlę „otwarte / pracuję / dopytuję / kończę".
+  OpenSpec change `carplay-koniec-i-copytasz`.
+- **Iter C** (~1,5 h): pkt 4 — osobno, bo wymaga stanu i intenta HA.
+  OpenSpec change `carplay-potwierdzenie-glosowe`.
+- **Iter D** (~1 h, **warunkowe**): pkt 6 — tylko po pomiarze z auta pokazującym > 30 s ciszy
+  w ≥ 1/3 prób. Bez tego to tuning per przypadek (ZASADY 5.10).
+
+**Każda iteracja**: prerejestracja (3.3), mutation test (4.4), pomiar z auta (3+ próby),
+notatka sesji z liczbami, commit + push G1-G5.
+
+**Status na pauzę**: wszystko zakomitowane, HEAD = origin w obu repo (Car `6ef94de`,
+PI `87b4966`). Pętla profesor-student zamknięta na prośbę usera (`petla.py --stop --wymus`).
+Metryki pętli: E1-E5=15,82/h, E6=3,84/h, 0 STOP-ów, 0 sporów, 0 ustąpień, 0 błędów.
+
+**TODO następnej sesji — pierwsze pytanie**: *czy zacząć od Iter A (prerejestracja
++ implementacja + pomiar w aucie), czy odpalić wszystkie 4 od razu z buforem na
+niespodzianki?*
+
 ### Audyt pokrycia OpenSpec (Z22)
 
 Inwentaryzacja z `voice_gateway.py` (grep na `path == "/api/car/"`): **znaleziono 12 endpointów**
