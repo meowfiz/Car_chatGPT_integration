@@ -1,5 +1,27 @@
 # START — Car_chatGPT_integration
 
+## Status: Car_chatGPT_integration
+
+**Stan**: Otwarte 3 zadania na refaktorze `monitor/ask_server.py` — migracja `sync_repo/sync_all` do nowych metod `ask_core.refresh_repo/refresh_all` z pomiarem baseline (10 pytań: mediana i p90 pełnej pętli). Ostatnia sesja (wczoraj): synchronizacja ZASADY_PRACY do v1.18. Ostatnie duże prace to sprint HA/bramka (8 endpointów `/api/car/*`, 9 intentów głosowych, 84 testy) i seria mutacji Z23–Z29 (wrapper aliasów, tests speech routing).
+
+**Git**: notes/start.md zmieniony (lokalnie), screenshot 2026-10-12 na dysku (artefakt pomiarowy).
+
+**Czekam na instrukcję.**
+
+
+## Ostatnia sesja -- 2026-10-29 (interfejs auta: plan dialogu)
+
+- Zmiana OpenSpec `car-dialog-okna`: dialog jako maszyna stanów (rozmowa główna / okno X na maszynie M), jeden endpoint `POST /api/car/say`, kolejka na okno, „gdzie jestem", wybór maszyny (pytanie tylko gdy okno otwarte na obu). Kontrakt: `notes/car_dialog_scenariusze.md` (35 scenariuszy).
+- Wdrożenie zlecone równolegle oknom `project_integration` (hub) i `HA` (08:50); stan: w toku, nic jeszcze niezweryfikowane.
+- TODO: O1 (czy relay drugiej maszyny zwraca odpowiedź okna), e2e, prerejestracja i pomiar w aucie (tasks grupa 4).
+
+## Ostatnia sesja -- 2026-10-15 (kontekst automatyczny)
+- Ostatnia sesja (wczoraj, 2026-10-14): synchronizacja reguł do wersji 1.18; wcześniej seria pomiarów na wrapperach aliasów i prerejestracjach (Z23–Z29)
+- Stan obecny: 3 otwarte zadania na synchronizacji kodu między repozytoriami (przejście sync_repo i sync_all na ask_core z pomiarem baseline)
+- Artefakt na dysku: screenshot pomiarowy (2026-10-12)
+- TODO: zmierzyć baseline 10 pytań przed zmianą semantyki; wdrożyć nowe metody synchronizacji; zaokiełować prerejestracjach
+
+
 ## Ostatnia sesja — 2026-10-13 koniec (pauza na świeże tokeny)
 
 User po Z23-Z29 i analizie luk: „na razie pauza — zapisz i zakończ. jak będę miał świeże
