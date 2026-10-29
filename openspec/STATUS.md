@@ -1,14 +1,14 @@
 # OpenSpec task status (generated)
 
-Generated 2026-10-29 09:35. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-29 10:06. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 90/208 tasks complete across 6 changes.**
+**Overall: 91/209 tasks complete across 6 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [car-dialog-okna](changes/car-dialog-okna/tasks.md) | 13/26 | 2026-10-29 |
+| [car-dialog-okna](changes/car-dialog-okna/tasks.md) | 14/27 | 2026-10-29 |
 | [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 43/74 | 2026-10-13 |
 | [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-10-05 |
 | [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-10-05 |
@@ -20,7 +20,7 @@ Generated 2026-10-29 09:35. Regenerate with `python notes/gen_openspec_status.py
 
 ## car-dialog-okna
 
-`13/26` tasks complete.
+`14/27` tasks complete.
 
 ### 1. Plan i kontrakt (to okno)
 
@@ -45,6 +45,7 @@ Generated 2026-10-29 09:35. Regenerate with `python notes/gen_openspec_status.py
 | [ ] | 2.9 Wykrywanie monitu o zgodę w panelu okna -> komunikat „okno czeka na zgodę" (D8) -- CZESCIOWO: tylko okna na tej maszynie (z domu nie widac panelu) |
 | [ ] | 2.10 ZASADY 2.14: wersja bramki i klon sprawdzone na **obu** maszynach, pomiar z dwóch urządzeń naraz -- CZESCIOWO: praca aktualna; dom ma bramke 286e620e52fe bez /api/car/say, potrzebny `start` + restart voice; test z dwoch urzadzen niezrobiony |
 | [x] | 2.11 NAPRAWIONE (hub, bramka praca 2e870112f65c: wersja stanu, spozniony zapis nie zmienia pozycji; e2e --live lancuch 7 PASS, 0 FAIL). BLAD z e2e 2026-10-29: `przejdz do Car` -> `wroc` -> `gdzie jestem` zwraca okno zamiast rozmowy glownej (mode=window); test sekwencyjny + mutacja; zlecone oknu huba |
+| [x] | 2.12 Poprawki huba ce8af05 (bramka praca 8a60332e0312): polecenie z nazwa okna w rozmowie glownej przechodzi i wysyla cale zdanie; rozmyte nazwy STT (WESSA/WESTA -> vESSA); do okna idzie `[glos-auto]`; stan nie resetuje sie przez stara sciezke dispatch. e2e: 24 PASS, 1 FAIL (wiersz 6, dom offline), 18 SKIP. Wiersze 36-38 tabeli sa z tej poprawki |
 
 ### 3. HA: okno `HA`
 

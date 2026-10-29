@@ -42,5 +42,8 @@ Kolumna „stan przed" -> „stan po"; `main` = rozmowa główna, `W(p,m)` = okn
 | 33 | main, praca offline | przejdź do Car | pending | main + pending(machine) | „komputer w pracy nie odpowiada" |
 | 34 | W(Car,praca), okno bez monitoru | gdzie jestem | where | bez zmian | „nie widzę stanu okna" (brak danych wymieniony) |
 | 35 | main | przejdź do | missing lub pending | main | „do którego projektu?" |
+| 36 | main | napisz w oknie projektu Car dodaj test | moved | W(Car,praca) | cale zdanie idzie do okna (hub ce8af05) |
+| 37 | main | przejdź do wessa | moved | W(vESSA---vessel-analysis,praca) | rozmyta nazwa z STT (WESSA/WESTA/WES-a) |
+| 38 | W(Car,praca) | dodaj test | queued | W(Car,praca) | do okna idzie `[glos-auto]` z prośbą o `Glosowo-auto` |
 
 Wiersz 25 jest testem R1 (słowo-klucz połknąłby zdanie). Wiersze 13, 24, 31, 32 testują stan, nie gramatykę.

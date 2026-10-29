@@ -19,6 +19,8 @@
 
 - [x] 2.11 NAPRAWIONE (hub, bramka praca 2e870112f65c: wersja stanu, spozniony zapis nie zmienia pozycji; e2e --live lancuch 7 PASS, 0 FAIL). BLAD z e2e 2026-10-29: `przejdz do Car` -> `wroc` -> `gdzie jestem` zwraca okno zamiast rozmowy glownej (mode=window); test sekwencyjny + mutacja; zlecone oknu huba
 
+- [x] 2.12 Poprawki huba ce8af05 (bramka praca 8a60332e0312): polecenie z nazwa okna w rozmowie glownej przechodzi i wysyla cale zdanie; rozmyte nazwy STT (WESSA/WESTA -> vESSA); do okna idzie `[glos-auto]`; stan nie resetuje sie przez stara sciezke dispatch. e2e: 24 PASS, 1 FAIL (wiersz 6, dom offline), 18 SKIP. Wiersze 36-38 tabeli sa z tej poprawki
+
 ## 3. HA: okno `HA`
 
 - [ ] 3.1 O2: zbadać zastępczego agenta konwersacji (bez słowa „Claude"); wynik zapisany

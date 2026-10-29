@@ -40,3 +40,9 @@ def test_bez_live_nie_wysyla_do_okna():
     assert e.sends_to_window(["queued", "answered"])
     assert not e.sends_to_window(["moved", "pending"])
     assert not e.sends_to_window(["where"])
+
+
+def test_przejscie_z_cala_trescia_to_wysylka_do_okna():
+    """Porazka z 2026-10-29 (wiersz 36): outcome moved, a tekst trafil do zywego okna."""
+    assert e.sends_to_window(["moved"], "cale zdanie idzie do okna")
+    assert not e.sends_to_window(["moved"], "Car, w pracy")

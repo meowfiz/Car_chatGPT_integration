@@ -124,9 +124,10 @@ CHAIN = [
 ]
 
 
-def sends_to_window(oc):
-    """True gdy oczekiwany wynik oznacza wpisanie tekstu do prawdziwego okna. Pure."""
-    return "queued" in oc
+def sends_to_window(oc, contains=""):
+    """True gdy oczekiwany wynik oznacza wpisanie tekstu do prawdziwego okna: `queued` albo opis
+    "idzie do okna" (wiersz 36: przejscie + cale zdanie, outcome moved, ale tekst laduje w oknie). Pure."""
+    return "queued" in oc or "do okna" in contains
 
 
 def run_chain(cl, tag, live=False):
@@ -162,7 +163,7 @@ def run_table(cl, tag, live=False):
             out.append(dict(part="table", n=r["n"], said=r["said"], bad=[],
                             skip="stan nieodtwarzalny wypowiedziami"))
             continue
-        if sends_to_window(outcomes(r["outcome"])) and not live:
+        if sends_to_window(outcomes(r["outcome"]), r["contains"]) and not live:
             out.append(dict(part="table", n=r["n"], said=r["said"], bad=[],
                             skip="wysyla do okna, tylko z --live"))
             continue
