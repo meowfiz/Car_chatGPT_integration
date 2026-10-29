@@ -1,7 +1,7 @@
 # Scenariusze dialogu auta (kontrakt dla testów huba i e2e)
 
 Zmiana: `openspec/changes/car-dialog-okna`. Świat testowy: projekty `Car_chatGPT_integration`, `HA`,
-`project_integration`, `RibnXtr2026`, `vESSA---vessel-analysis`; maszyny `praca` (domyślna), `dom`.
+`project_integration`, `RibnXtr2026`, `vESSA---vessel-analysis`; maszyny `praca` (domyślna, DESKTOP-GEIH38C) i `dom` (DESKTOP-FFSHIOA), potwierdzone 2026-10-29.
 Okna otwarte: `Car` tylko praca; `HA` praca i dom; `project_integration` tylko praca; reszta zamknięta.
 Kolumna „stan przed" -> „stan po"; `main` = rozmowa główna, `W(p,m)` = okno p na maszynie m.
 
@@ -35,8 +35,8 @@ Kolumna „stan przed" -> „stan po"; `main` = rozmowa główna, `W(p,m)` = okn
 | 26 | W(Car,praca) | powtórz | answered | bez zmian | ostatnie Glosowo |
 | 27 | main | git push origin main | refused | main | „w aucie tego nie zrobię" |
 | 28 | W(Car,praca) | zrób rm -rf na katalogu | refused | W(Car,praca) | nic nie trafia do okna |
-| 29 | main | zamknij okno | answered | main | „nie ma otwartego okna" |
-| 30 | W(Car,praca) | zamknij okno | answered | main | „zamykam" lub „zostawiam otwarte" (decyzja huba, zapisana) |
+| 29 | main | zamknij okno | answered | main | „nie jesteś w żadnym oknie" |
+| 30 | W(Car,praca) | zamknij okno | answered | main | „wychodzę z okna"; okno zostaje otwarte (decyzja użytkownika 2026-10-29) |
 | 31 | W(Car,praca), cisza 30 min | dodaj test | queued | W(Car,praca) | zaczyna się „Jesteś nadal w oknie" |
 | 32 | W(Car,praca), cisza 5 h | dodaj test | answered | main | „Poprzednie okno wygasło" (stan > 4 h) |
 | 33 | main, praca offline | przejdź do Car | pending | main + pending(machine) | „komputer w pracy nie odpowiada" |

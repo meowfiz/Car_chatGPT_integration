@@ -27,7 +27,7 @@
 
 ## 4. E2E i pomiar (to okno)
 
-- [ ] 4.1 Rozszerzyć `tools/voice_e2e.py` (hub) albo dołożyć `poc/car_dialog_e2e.py` (tu): przebieg „jakie projekty pracują -> przejdź do X -> 3 polecenia -> gdzie jestem -> wróć -> pytanie główne" na prawdziwej ścieżce HA -> bramka -> okno
+- [x] 4.1 (runner gotowy: `poc/car_dialog_e2e.py`, 5 testów w `test_car_dialog_e2e.py`; na `/api/car/say` jeszcze nieuruchomiony - endpoint nie istnieje, 2026-10-29 połączenie odrzucone). Rozszerzyć `tools/voice_e2e.py` (hub) albo dołożyć `poc/car_dialog_e2e.py` (tu): przebieg „jakie projekty pracują -> przejdź do X -> 3 polecenia -> gdzie jestem -> wróć -> pytanie główne" na prawdziwej ścieżce HA -> bramka -> okno
 - [ ] 4.2 PREREJESTRACJA przed pomiarem w aucie (ZASADY 3.3): hipoteza „>= 9/10 przejść do okna kończy się poprawnym projektem i maszyną bez dotykania telefonu", jedna statystyka, warunek NEGATYWU (< 7/10 -> wracamy do gramatyki D2, bez dostrajania po wyniku), czego wynik nie uprawnia (nie mierzy jakości odpowiedzi okna)
 - [ ] 4.3 Pomiar w aucie (>= 10 przejść, >= 10 poleceń w oknie, 3 „gdzie jestem", 3 powroty), tabela w `notes/HANDOFF_car_dialog.md`
 - [ ] 4.4 Notatka sesji, `python notes/gen_openspec_status.py`, commit i push (ZASADY 2.10)

@@ -178,4 +178,5 @@ Token Bearer bez zmian. Przejście do okna zdalnego nie omija odmów po stronie 
 - **O2** (HA): czy da się ustawić gateway jako zastępczego agenta konwersacji (`conversation.process` fallback),
   żeby wyrzucić prefiks „Claude"; jeśli nie, prefiks zostaje i stan okna go nie wymaga po stronie bramki
   (bramka toleruje wypowiedź bez prefiksu, bo HA go odcina).
-- **O3**: nazwy mówione maszyn („w pracy", „w domu") - potwierdzić z użytkownikiem przy pierwszym teście.
+- **O3** (zamknięte 2026-10-29): „w pracy" = DESKTOP-GEIH38C, „w domu" = DESKTOP-FFSHIOA.
+- **Decyzja 2026-10-29**: „zamknij okno" = wyjście z okna do rozmowy głównej; okno na komputerze zostaje otwarte.

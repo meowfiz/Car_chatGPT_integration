@@ -1,14 +1,14 @@
 # OpenSpec task status (generated)
 
-Generated 2026-10-29 08:50. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-29 08:54. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 80/204 tasks complete across 6 changes.**
+**Overall: 81/204 tasks complete across 6 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [car-dialog-okna](changes/car-dialog-okna/tasks.md) | 3/22 | 2026-10-29 |
+| [car-dialog-okna](changes/car-dialog-okna/tasks.md) | 4/22 | 2026-10-29 |
 | [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 43/74 | 2026-10-13 |
 | [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-10-05 |
 | [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-10-05 |
@@ -20,7 +20,7 @@ Generated 2026-10-29 08:50. Regenerate with `python notes/gen_openspec_status.py
 
 ## car-dialog-okna
 
-`3/22` tasks complete.
+`4/22` tasks complete.
 
 ### 1. Plan i kontrakt (to okno)
 
@@ -59,7 +59,7 @@ Generated 2026-10-29 08:50. Regenerate with `python notes/gen_openspec_status.py
 
 | Done | Task |
 |---|---|
-| [ ] | 4.1 Rozszerzyć `tools/voice_e2e.py` (hub) albo dołożyć `poc/car_dialog_e2e.py` (tu): przebieg „jakie projekty pracują -> przejdź do X -> 3 polecenia -> gdzie jestem -> wróć -> pytanie główne" na prawdziwej ścieżce HA -> bramka -> okno |
+| [x] | 4.1 (runner gotowy: `poc/car_dialog_e2e.py`, 5 testów w `test_car_dialog_e2e.py`; na `/api/car/say` jeszcze nieuruchomiony - endpoint nie istnieje, 2026-10-29 połączenie odrzucone). Rozszerzyć `tools/voice_e2e.py` (hub) albo dołożyć `poc/car_dialog_e2e.py` (tu): przebieg „jakie projekty pracują -> przejdź do X -> 3 polecenia -> gdzie jestem -> wróć -> pytanie główne" na prawdziwej ścieżce HA -> bramka -> okno |
 | [ ] | 4.2 PREREJESTRACJA przed pomiarem w aucie (ZASADY 3.3): hipoteza „>= 9/10 przejść do okna kończy się poprawnym projektem i maszyną bez dotykania telefonu", jedna statystyka, warunek NEGATYWU (< 7/10 -> wracamy do gramatyki D2, bez dostrajania po wyniku), czego wynik nie uprawnia (nie mierzy jakości odpowiedzi okna) |
 | [ ] | 4.3 Pomiar w aucie (>= 10 przejść, >= 10 poleceń w oknie, 3 „gdzie jestem", 3 powroty), tabela w `notes/HANDOFF_car_dialog.md` |
 | [ ] | 4.4 Notatka sesji, `python notes/gen_openspec_status.py`, commit i push (ZASADY 2.10) |
