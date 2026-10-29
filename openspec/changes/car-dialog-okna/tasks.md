@@ -20,6 +20,7 @@
 - [x] 2.11 NAPRAWIONE (hub, bramka praca 2e870112f65c: wersja stanu, spozniony zapis nie zmienia pozycji; e2e --live lancuch 7 PASS, 0 FAIL). BLAD z e2e 2026-10-29: `przejdz do Car` -> `wroc` -> `gdzie jestem` zwraca okno zamiast rozmowy glownej (mode=window); test sekwencyjny + mutacja; zlecone oknu huba
 
 - [x] 2.12 Poprawki huba ce8af05 (bramka praca 8a60332e0312): polecenie z nazwa okna w rozmowie glownej przechodzi i wysyla cale zdanie; rozmyte nazwy STT (WESSA/WESTA -> vESSA); do okna idzie `[glos-auto]`; stan nie resetuje sie przez stara sciezke dispatch. e2e: 24 PASS, 1 FAIL (wiersz 6, dom offline), 18 SKIP. Wiersze 36-38 tabeli sa z tej poprawki
+- [x] 2.13 Dyktowanie w aucie (hub, po ce8af05): `Claude dyktuje` -> kolejne zdania dopisywane (odp. `Mam`), `Claude przeczytaj`, `Claude anuluj`, `Claude wyslij` -> calosc jako jedno polecenie; stan publiczny `dictating=true`. Pomiar huba: Assist ucina na pierwszej pauzie (max 94 znaki)
 
 ## 3. HA: okno `HA`
 
@@ -27,6 +28,9 @@
 - [ ] 3.2 Intent `ClaudeSay` (`claude {pytanie}` + warianty) -> `rest_command.car_say` z `session_id = conversation_id`, `text = pytanie`; odpowiedź = pole `text`
 - [ ] 3.3 Stare intenty (Dispatch/Status/Podsumowanie/Otworz/Zamknij/Powtorz) przekierowane na `car_say` z odpowiednim tekstem albo usunięte; `PomocClaude` zaktualizowana o nowe komendy
 - [ ] 3.4 Odpowiedź asynchroniczna: `script.odpowiedz_asystenta` przyjmuje wywołanie z bramki dla satelity rozmowy auta
+- [ ] 3.6 VAD: poluzowac wykrywanie ciszy w pipeline Assist uzywanym w aucie (dyktowanie ucina sie na pierwszej pauzie, max 94 znaki); wynik pomiarem
+- [ ] 3.7 Opoznienie HA: zdanie z dowolnym tekstem 6,7 s przez HA wobec 0,0 s w bramce (krotkie frazy 0,2 s) -- zmierzyc etapy przed `car_say`
+- [ ] 3.8 Dyktowanie bez slowa Claude w kazdym zdaniu, gdy `dictating=true` (zastepczy agent rozmowy, O2/3.1)
 - [ ] 3.5 Deploy `ssh ha-tailscale` + reload, test fraz z tabeli 1.2 przez `conversation.process`
 
 ## 2a. Dom i integracja (po raporcie huba 2026-10-29)
