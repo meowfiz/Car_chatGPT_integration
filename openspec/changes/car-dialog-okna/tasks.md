@@ -17,7 +17,7 @@
 - [ ] 2.9 Wykrywanie monitu o zgodę w panelu okna -> komunikat „okno czeka na zgodę" (D8) -- CZESCIOWO: tylko okna na tej maszynie (z domu nie widac panelu)
 - [ ] 2.10 ZASADY 2.14: wersja bramki i klon sprawdzone na **obu** maszynach, pomiar z dwóch urządzeń naraz -- CZESCIOWO: praca aktualna; dom ma bramke 286e620e52fe bez /api/car/say, potrzebny `start` + restart voice; test z dwoch urzadzen niezrobiony
 
-- [ ] 2.11 BLAD z e2e 2026-10-29: `przejdz do Car` -> `wroc` -> `gdzie jestem` zwraca okno zamiast rozmowy glownej (mode=window); test sekwencyjny + mutacja; zlecone oknu huba
+- [x] 2.11 NAPRAWIONE (hub, bramka praca 2e870112f65c: wersja stanu, spozniony zapis nie zmienia pozycji; e2e --live lancuch 7 PASS, 0 FAIL). BLAD z e2e 2026-10-29: `przejdz do Car` -> `wroc` -> `gdzie jestem` zwraca okno zamiast rozmowy glownej (mode=window); test sekwencyjny + mutacja; zlecone oknu huba
 
 ## 3. HA: okno `HA`
 

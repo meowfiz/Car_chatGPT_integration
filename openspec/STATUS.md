@@ -1,14 +1,14 @@
 # OpenSpec task status (generated)
 
-Generated 2026-10-29 09:28. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
+Generated 2026-10-29 09:35. Regenerate with `python notes/gen_openspec_status.py` after updating any change's `tasks.md`. Do not hand-edit this file.
 
-**Overall: 89/208 tasks complete across 6 changes.**
+**Overall: 90/208 tasks complete across 6 changes.**
 
 ## Summary (most recently updated first)
 
 | Change | Status | Last updated |
 |---|---|---|
-| [car-dialog-okna](changes/car-dialog-okna/tasks.md) | 12/26 | 2026-10-29 |
+| [car-dialog-okna](changes/car-dialog-okna/tasks.md) | 13/26 | 2026-10-29 |
 | [carplay-okna-projektow](changes/carplay-okna-projektow/tasks.md) | 43/74 | 2026-10-13 |
 | [voice-intent](changes/voice-intent/tasks.md) | 26/29 | 2026-10-05 |
 | [voice-grok-front](changes/voice-grok-front/tasks.md) | 0/24 | 2026-10-05 |
@@ -20,7 +20,7 @@ Generated 2026-10-29 09:28. Regenerate with `python notes/gen_openspec_status.py
 
 ## car-dialog-okna
 
-`12/26` tasks complete.
+`13/26` tasks complete.
 
 ### 1. Plan i kontrakt (to okno)
 
@@ -44,7 +44,7 @@ Generated 2026-10-29 09:28. Regenerate with `python notes/gen_openspec_status.py
 | [x] | 2.8 Adapter `RemoteRelay` (po 2.1); okno zamknięte -> `okna.py`, czekanie na gotowość -- zrobione, zywo sprawdzone; otwieranie zamknietego okna tylko atrapami |
 | [ ] | 2.9 Wykrywanie monitu o zgodę w panelu okna -> komunikat „okno czeka na zgodę" (D8) -- CZESCIOWO: tylko okna na tej maszynie (z domu nie widac panelu) |
 | [ ] | 2.10 ZASADY 2.14: wersja bramki i klon sprawdzone na **obu** maszynach, pomiar z dwóch urządzeń naraz -- CZESCIOWO: praca aktualna; dom ma bramke 286e620e52fe bez /api/car/say, potrzebny `start` + restart voice; test z dwoch urzadzen niezrobiony |
-| [ ] | 2.11 BLAD z e2e 2026-10-29: `przejdz do Car` -> `wroc` -> `gdzie jestem` zwraca okno zamiast rozmowy glownej (mode=window); test sekwencyjny + mutacja; zlecone oknu huba |
+| [x] | 2.11 NAPRAWIONE (hub, bramka praca 2e870112f65c: wersja stanu, spozniony zapis nie zmienia pozycji; e2e --live lancuch 7 PASS, 0 FAIL). BLAD z e2e 2026-10-29: `przejdz do Car` -> `wroc` -> `gdzie jestem` zwraca okno zamiast rozmowy glownej (mode=window); test sekwencyjny + mutacja; zlecone oknu huba |
 
 ### 3. HA: okno `HA`
 
