@@ -170,6 +170,97 @@
       "sasagiribook",
       "projekt sasagiri",
       "projekt sasagiri book"
+    ],
+    "publikacja---volume-palette": [
+      "volume",
+      "palette",
+      "publikacja volume",
+      "volume palette",
+      "publikacja volume palette",
+      "publikacjavolumepalette",
+      "projekt publikacja volume palette",
+      "wolume",
+      "publikacja wolume",
+      "wolume palette",
+      "publikacja wolume palette",
+      "publikacjawolumepalette",
+      "projekt publikacja wolume palette"
+    ],
+    "publikacja---elastic-screen": [
+      "elastic",
+      "screen",
+      "publikacja elastic",
+      "elastic screen",
+      "publikacja elastic screen",
+      "publikacjaelasticscreen",
+      "projekt publikacja elastic screen"
+    ],
+    "publikacja---mesh-hole": [
+      "mesh",
+      "hole",
+      "publikacja mesh",
+      "mesh hole",
+      "publikacja mesh hole",
+      "publikacjameshhole",
+      "projekt publikacja mesh hole"
+    ],
+    "publikacja---rice-grain": [
+      "rice",
+      "grain",
+      "publikacja rice",
+      "rice grain",
+      "publikacja rice grain",
+      "publikacjaricegrain",
+      "projekt publikacja rice grain"
+    ],
+    "publikacja---sphere-shoot": [
+      "sphere",
+      "shoot",
+      "publikacja sphere",
+      "sphere shoot",
+      "publikacja sphere shoot",
+      "publikacjasphereshoot",
+      "projekt publikacja sphere shoot"
+    ],
+    "publikacja---vessel-model": [
+      "vessel",
+      "model",
+      "publikacja vessel",
+      "vessel model",
+      "publikacja vessel model",
+      "publikacjavesselmodel",
+      "projekt publikacja vessel model",
+      "wessel",
+      "publikacja wessel",
+      "wessel model",
+      "publikacja wessel model",
+      "publikacjawesselmodel",
+      "projekt publikacja wessel model"
+    ],
+    "publikacja---jk": [
+      "publikacja jk",
+      "publikacjajk",
+      "projekt publikacja jk"
+    ],
+    "panel-projektow": [
+      "panel",
+      "projektow",
+      "panel projektow",
+      "panelprojektow",
+      "projekt panel",
+      "projekt panel projektow"
+    ],
+    "mobil1": [
+      "mobil1",
+      "projekt mobil1"
+    ],
+    "dokumenty-domowe": [
+      "dokumenty",
+      "domowe",
+      "dokumenty domowe",
+      "dokumentydomowe",
+      "projekt dokumenty",
+      "projekt dokumenty domowe"
     ]
   }
 }

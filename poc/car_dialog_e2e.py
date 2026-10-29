@@ -6,7 +6,11 @@ Dwie czesci:
             stan budowany wypowiedziami ("przejdz do <p> w <m>"), nie zapisem pliku.
 Wiersze z pending / trail / cisza sa pomijane (SKIP z powodem) -- pokrywa je test jednostkowy huba.
 
-Uzycie: python poc/car_dialog_e2e.py [--url https://localhost:8788] [--token T] [--only chain|table] [--json]
+Bez --live runner NIE wysyla tresci do prawdziwych okien (2026-10-29 test wpisal "drugi" do zywego okna HA):
+kroki i wiersze, ktorych wynikiem jest `queued` albo tekst do okna, sa pomijane. Przejscia i komendy dialogu
+(wejscie do okna, gdzie jestem, wroc) ida zawsze -- nie wpisuja nic do panelu.
+
+Uzycie: python poc/car_dialog_e2e.py [--url https://localhost:8788] [--token T] [--only chain|table] [--live] [--json]
 Token: --token, CAR_TOKEN albo pierwszy token z hub tools/voice_gateway.load_car_tokens().
 Kod wyjscia 0 = brak FAIL, 1 = jest FAIL, 2 = brak polaczenia lub tokenu. Stdlib only, ASCII.
 """
@@ -111,7 +115,7 @@ def check(res, want_outcomes, want_state, contains):
 CHAIN = [
     ("jakie projekty teraz pracuja", ["answered"], ("main", None, None)),
     ("przejdz do projektu car integration", ["moved", "pending"], None),
-    ("w pracy", ["moved", "answered", "pending"], None),
+    ("w pracy", ["moved"], None, "only_if_pending"),
     ("gdzie jestem", ["where"], ("window", "Car", None)),
     ("powiedz oknu odpowiedz jednym slowem ok", ["queued", "answered"], ("window", "Car", None)),
     ("gdzie pracujemy", ["where"], ("window", "Car", None)),
@@ -120,21 +124,36 @@ CHAIN = [
 ]
 
 
-def run_chain(cl, tag):
+def sends_to_window(oc):
+    """True gdy oczekiwany wynik oznacza wpisanie tekstu do prawdziwego okna. Pure."""
+    return "queued" in oc
+
+
+def run_chain(cl, tag, live=False):
     sid = "e2e-chain-%s" % tag
     out = []
-    for said, oc, st in CHAIN:
+    last = ""
+    for step in CHAIN:
+        said, oc, st = step[:3]
+        if len(step) > 3 and last != "pending":
+            # odpowiedz na pytanie zwrotne; bez pytania trafilaby do okna jako polecenie (2026-10-29)
+            out.append(dict(part="chain", said=said, bad=[], skip="brak pytania zwrotnego"))
+            continue
+        if sends_to_window(oc) and not live:
+            out.append(dict(part="chain", said=said, bad=[], skip="wysyla do okna, tylko z --live"))
+            continue
         t0 = time.time()
         try:
             res = cl.say(sid, said)
             bad = check(res, oc, st, [])
+            last = res.get("outcome")
         except Exception as exc:  # noqa: BLE001
             res, bad = {}, ["blad: %r" % (exc,)]
         out.append(dict(part="chain", said=said, dt=round(time.time() - t0, 1), bad=bad, text=res.get("text")))
     return out
 
 
-def run_table(cl, tag):
+def run_table(cl, tag, live=False):
     out = []
     for r in parse_table(open(TABLE, encoding="utf-8").read()):
         before, after = parse_state(r["before"]), parse_state(r["after"])
@@ -142,6 +161,10 @@ def run_table(cl, tag):
         if before is None or (after is None and not same):
             out.append(dict(part="table", n=r["n"], said=r["said"], bad=[],
                             skip="stan nieodtwarzalny wypowiedziami"))
+            continue
+        if sends_to_window(outcomes(r["outcome"])) and not live:
+            out.append(dict(part="table", n=r["n"], said=r["said"], bad=[],
+                            skip="wysyla do okna, tylko z --live"))
             continue
         sid = "e2e-t%s-%d" % (tag, r["n"])
         try:
@@ -157,9 +180,10 @@ def run_table(cl, tag):
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--url", default=os.environ.get("CAR_GATEWAY_URL", "https://localhost:8788"))
+    ap.add_argument("--url", default=os.environ.get("CAR_GATEWAY_URL", "https://100.127.128.47:8788"))
     ap.add_argument("--token", default="")
     ap.add_argument("--only", choices=["chain", "table"])
+    ap.add_argument("--live", action="store_true", help="pozwol wysylac tresc do prawdziwych okien")
     ap.add_argument("--json", action="store_true")
     a = ap.parse_args(argv)
     token = get_token(a.token)
@@ -174,9 +198,9 @@ def main(argv=None):
         return 2
     res = []
     if a.only != "table":
-        res += run_chain(cl, tag)
+        res += run_chain(cl, tag, a.live)
     if a.only != "chain":
-        res += run_table(cl, tag)
+        res += run_table(cl, tag, a.live)
     for r in res:
         status = "SKIP" if r.get("skip") else ("FAIL" if r["bad"] else "PASS")
         print("%-5s %-6s %s %s" % (status, r["part"], r.get("n") or r["said"], "; ".join(r["bad"]) or r.get("skip", "")))

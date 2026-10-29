@@ -33,3 +33,10 @@ def test_check_zgodny_z_diakrytykami():
 
 def test_outcomes_lub():
     assert e.outcomes("queued lub answered") == ["queued", "answered"]
+
+
+def test_bez_live_nie_wysyla_do_okna():
+    """Porazka z 2026-10-29: e2e wpisal tekst do zywego okna HA. queued = wpis do okna."""
+    assert e.sends_to_window(["queued", "answered"])
+    assert not e.sends_to_window(["moved", "pending"])
+    assert not e.sends_to_window(["where"])
