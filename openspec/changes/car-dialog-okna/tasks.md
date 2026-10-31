@@ -31,6 +31,7 @@
 - [ ] 3.6 VAD: poluzowac wykrywanie ciszy w pipeline Assist uzywanym w aucie (dyktowanie ucina sie na pierwszej pauzie, max 94 znaki); wynik pomiarem
 - [ ] 3.7 Opoznienie HA: zdanie z dowolnym tekstem 6,7 s przez HA wobec 0,0 s w bramce (krotkie frazy 0,2 s) -- zmierzyc etapy przed `car_say`
 - [ ] 3.8 Dyktowanie bez slowa Claude w kazdym zdaniu, gdy `dictating=true` (zastepczy agent rozmowy, O2/3.1)
+- [ ] 3.9 Zdanie domowe z auta (`wlacz swiatlo w kuchni`, 2026-10-31, tag `[glos-auto]`) dotarlo do okna projektu: lokalne intencje HA maja miec pierwszenstwo przed `car_say`/agentem zastepczym; zmierzyc, ktoredy poszlo (log HA + bramki), nie zgadywac. Hub: czy bramka ma odeslac takie zdanie z powrotem (`outcome=passthrough`)
 - [ ] 3.5 Deploy `ssh ha-tailscale` + reload, test fraz z tabeli 1.2 przez `conversation.process`
 
 ## 2a. Dom i integracja (po raporcie huba 2026-10-29)
