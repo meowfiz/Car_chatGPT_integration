@@ -9,6 +9,11 @@
 **Czekam na instrukcję.**
 
 
+## Ostatnia sesja -- 2026-11-13 (znikająca lista ostatnich projektów w aucie)
+
+- Lista (`recent` w sesji `ha-car`, plik `~/.claude/carplay_sessions.json`) została wyzerowana w nocy 12/13.11; przyczyna nieustalona, hipoteza: zapis z testów. Zabezpieczenia w `project_integration` (fallback odczytu, `CAR_SESSIONS_FILE` w testach, 3 testy + mutacje); bramka w pracy zrestartowana.
+- TODO: sprawdzić maszynę dom (2.14); gdy lista znów zniknie - osobny trwały plik na listę. Szczegóły: `notes/sesje/2026-11-13-lista-ostatnich-sesja.md`.
+
 ## Ostatnia sesja -- 2026-10-29 (interfejs auta: plan dialogu)
 
 - Zmiana OpenSpec `car-dialog-okna`: dialog jako maszyna stanów (rozmowa główna / okno X na maszynie M), jeden endpoint `POST /api/car/say`, kolejka na okno, „gdzie jestem", wybór maszyny (pytanie tylko gdy okno otwarte na obu). Kontrakt: `notes/car_dialog_scenariusze.md` (35 scenariuszy).
