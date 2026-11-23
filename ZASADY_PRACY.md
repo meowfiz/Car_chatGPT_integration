@@ -1,6 +1,6 @@
 # ZASADY PRACY — wspólne dla wszystkich projektów
 
-Wersja 1.42 (2026-11-14). Jeden plik, wrzucany do każdego repozytorium. Claude czyta go przez
+Wersja 1.43 (2026-11-23). Jeden plik, wrzucany do każdego repozytorium. Claude czyta go przez
 `@ZASADY_PRACY.md` w `CLAUDE.md`. Projekt zbiorczy (integrujący widok na wszystkie repozytoria)
 polega na **sekcji 9** — stałych ścieżkach i nazwach, po których da się czytać każde repo tak samo.
 
@@ -575,17 +575,17 @@ na czas jednego testu. *Dlaczego:* decyzja użytkownika 2026-11-13 („małe kur
 dostał 210 pushy, w tym 106 „skończył” (połowa poniżej 5 min) i 62 „commit tylko na”; „Claude: echo: anuluj” z 9–13.11 to był test,
 którego spóźniona odpowiedź po cofnięciu zaślepki szła prawdziwą drogą do HA (13 pushy).
 
-**7.12 Opus planuje i decyduje, Sonnet wykonuje zadania atomowe.** Sesja główna (Opus) robi to, co wymaga osądu: planowanie,
-decyzje o kierunku, projekt eksperymentu i prerejestracja, interpretacja wyników, redakcja tekstu dla ludzi. Zadanie **atomowe**
-— jasno opisane, o znanym wyniku, sprawdzalne jednym poleceniem lub diffem (mechaniczna edycja wielu plików, uruchomienie
-i zebranie wyników, konwersja, rozsyłka, generowanie tabeli z gotowego skryptu, wyszukanie w repo, pierwsza wersja testu do
-istniejącej funkcji) — Claude zleca podagentowi `Agent` z `model: "sonnet"`, z kompletnym opisem (cel, pliki, miara sukcesu, czego
-nie ruszać). Wynik podagenta Claude **sprawdza** (diff, testy, liczby), zanim go użyje, i za niego odpowiada. Nie zleca Sonnetowi
-rzeczy, w których błąd jest cichy i kosztowny (prerejestracje, progi, wnioski statystyczne, reguły), ani zadań na 2–3 wywołania
-narzędzi, które szybciej zrobić samemu. **Tryb profesor–student (skill `profesor-student`) jest osobnym mechanizmem** i ma własne
-role modeli; ta reguła go nie zmienia. *Dlaczego:* decyzja użytkownika 2026-11-14 — jakość planowania zależy od mocnego modelu,
-a większość pracy to zadania mechaniczne, które tańszy model robi równie dobrze; podział ogranicza zużycie limitu bez utraty jakości
-decyzji.
+**7.12 Opus planuje i decyduje, reszta to workery Sonnet.** Planowanie, decyzje o kierunku, projekt eksperymentu i prerejestracja,
+interpretacja wyników i redakcja tekstu dla ludzi należą do Opusa. **Całą resztę wykonują workery `Agent` z `model: "sonnet"`**:
+edycje plików, uruchomienia i zbieranie wyników, konwersje, rozsyłka, wyszukiwanie w repo, testy, implementacja według planu.
+Zlecenie ma kompletny opis (cel, pliki, miara sukcesu, czego nie ruszać). Wynik workera Opus (lub sesja zlecająca) **sprawdza**
+(diff, testy, liczby), zanim go użyje, i za niego odpowiada. Wyjątki: zadanie na 2–3 wywołania narzędzi szybciej zrobić samemu;
+prerejestracji, progów, wniosków statystycznych i reguł (błąd cichy i kosztowny) nie pisze worker, tylko Opus. Sesja prowadzona
+na Sonnecie wykonuje sama to, co zleciłby worker, a decyzje o kierunku i interpretację wyników zostawia Opusowi (fork lub
+`Agent` z `model: "opus"`). **Tryb profesor–student (skill `profesor-student`) jest osobnym mechanizmem** i ma własne role modeli.
+*Dlaczego:* decyzja użytkownika 2026-11-14, zaostrzona 2026-11-23 („planowanie i decyzje Opus, reszta workery Sonnet, jako zasada
+do wszystkich projektów”) — jakość planu zależy od mocnego modelu, a wykonanie robi tańszy model równie dobrze; podział ogranicza
+zużycie limitu bez utraty jakości decyzji.
 
 ---
 
@@ -641,7 +641,7 @@ wgranie do wszystkich repo.
 
 | wersja | data | co i skąd |
 |---|---|---|
+| 1.43 | 2026-11-23 | Reguła 7.12 zaostrzona: Opus planuje i decyduje, całą resztę wykonują workery Sonnet (nie tylko zadania atomowe); wynik sprawdza zlecający. *Skąd:* decyzja użytkownika 2026-11-23. |
 | 1.42 | 2026-11-14 | Reguła 7.12: Opus planuje i decyduje, zadania atomowe idą do podagentów Sonnet (wynik sprawdza Claude); tryb profesor–student bez zmian. *Skąd:* decyzja użytkownika 2026-11-14. |
-| 1.41 | 2026-11-13 | Reguła 7.11 rozszerzona o powiadomienia na telefon (HA, ntfy): tylko gdy trzeba działać, duże zadanie (od 30 min) albo zaproszone przez telefon; commit niewypchnięty dopiero po 2 h; testy nigdy nie wysyłają pushy. *Skąd:* decyzja użytkownika 2026-11-13 (210 pushy w 36 h; „echo: anuluj” z testu). |
 
 Starsze wpisy (pełna tabela 1.0–1.42): `project_integration/notes/ZASADY_HISTORIA.md`.
