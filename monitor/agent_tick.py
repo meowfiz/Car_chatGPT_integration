@@ -166,7 +166,9 @@ def spawn_detached(session_id, cwd):
     kw = {"stdin": subprocess.DEVNULL, "stdout": subprocess.DEVNULL, "stderr": subprocess.DEVNULL,
           "close_fds": True, "cwd": cwd}
     if os.name == "nt":
-        kw["creationflags"] = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+        # CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP: a hidden console that git/claude children
+        # inherit; DETACHED_PROCESS left them console-less and each one opened a window (2026-11-14)
+        kw["creationflags"] = 0x08000000 | 0x00000200
     else:
         kw["start_new_session"] = True
     subprocess.Popen(args, **kw)

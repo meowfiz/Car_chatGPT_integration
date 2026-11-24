@@ -446,6 +446,23 @@ def handle(cfg, item, repo_map, runner=None):
     return "answered" if answer else "failed"
 
 
+def owner_elsewhere(lock_data, my_pid, now, poll_s):
+    """True when the lock is held, fresh, by ANOTHER worker: this one is a duplicate and must stop. A busy machine can
+    make one loop pass last longer than LOCK_STALE_POLLS polls; the next start then brings up a second worker and,
+    before this check, nobody ever stopped the first (2026-11-06: five ask workers on the work PC). Pure."""
+    if not isinstance(lock_data, dict) or lock_data.get("pid") in (None, my_pid):
+        return False
+    return (now - float(lock_data.get("at") or 0)) < poll_s * LOCK_STALE_POLLS
+
+
+def read_lock():
+    try:
+        with open(lock_path(), encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return None
+
+
 def serve(cfg, once=False, sleep=time.sleep, runner=None):
     poll_s = _float(cfg, "MONITOR_ASK_POLL_S", POLL_S)
     handled = 0
@@ -457,6 +474,9 @@ def serve(cfg, once=False, sleep=time.sleep, runner=None):
     caps = None
     while True:
         if not once:
+            if owner_elsewhere(read_lock(), os.getpid(), time.time(), poll_s):
+                heartbeat.log("ask worker pid=%d: another worker owns the lock, stopping (duplicate)" % os.getpid())
+                return handled
             touch_lock(time.time())  # a stale lock is how the next window knows to restart us
         repo_map = load_repo_map()  # re-read each pass: a repo can be added without a restart
         if caps is None:

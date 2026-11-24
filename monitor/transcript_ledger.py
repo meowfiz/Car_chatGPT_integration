@@ -674,6 +674,29 @@ def other_instance_live(now, poll_s, path=LOCK_PATH):
     return isinstance(data, dict) and data.get("pid") != os.getpid() and now - float(data.get("at") or 0) < poll_s * 3
 
 
+def spoiwo_tick(led, last, now=None, every=600.0):
+    """Every `every` s hand the day files to the private repo `spoiwo` (tools/spoiwo.sync_prompty), when this
+    clone has tools/spoiwo.py and spoiwo= in monitor_repos.env. Never raises: a sync failure must not stop
+    the ledger. Returns the new `last`."""
+    now = time.time() if now is None else now
+    if now - last < every:
+        return last
+    try:
+        tools = os.path.join(os.path.dirname(HERE), "tools")
+        if not os.path.isfile(os.path.join(tools, "spoiwo.py")):
+            return now
+        if tools not in sys.path:
+            sys.path.insert(0, tools)
+        import importlib
+        spoiwo = importlib.import_module("spoiwo")   # hub-only module: not a pack import (test_only_stdlib_imports)
+        if spoiwo.spoiwo_dir():
+            res = spoiwo.sync_prompty()
+            led.log("spoiwo: %s %s prompty %s" % (res.get("result"), res.get("reason", ""), res.get("prompty")))
+    except Exception as exc:  # noqa: BLE001
+        led.log("spoiwo failed: %r" % (exc,))
+    return now
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     g = ap.add_mutually_exclusive_group(required=True)
@@ -690,11 +713,13 @@ def main(argv=None):
         return 0
     led.log("start: loop %.0f s, projects %s, out %s" % (args.loop, led.projects_dir, led.out_dir))
     cpu = []
+    last_spoiwo = 0.0
     try:
         while True:
             touch_lock(time.time())
             stats = led.run_once()
             touch_lock(time.time())
+            last_spoiwo = spoiwo_tick(led, last_spoiwo)
             cpu.append(stats["cpu_s"])
             if len(cpu) >= 30:
                 cpu.sort()

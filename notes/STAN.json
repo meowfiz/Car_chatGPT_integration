@@ -1,0 +1,14 @@
+{
+ "schema": 1,
+ "projekt": "Car_chatGPT_integration",
+ "czas": "2026-11-24T13:51:11",
+ "maszyna": "GEIH38C",
+ "ostatnie_zadanie": "chore: sync ZASADY_PRACY to v1.43",
+ "zrobione": "Na stronie do auta jest przycisk zmiany wyglądu: klasyczny, neon fioletowo-pomarańczowy i neon niebieski. Ten sam wygląd działa w konsoli okna.",
+ "w_toku": "Restart przekaźnika i sprawdzenie na telefonie.",
+ "zlecone": {
+  "wykonane": 0,
+  "czeka": 1,
+  "problem": 0
+ }
+}

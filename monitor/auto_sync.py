@@ -34,8 +34,10 @@ import argparse
 import datetime as _dt
 import json
 import os
+import re
 import subprocess
 import sys
+import time
 
 # auto_sync.py runs as a DETACHED process (spawned via --spawn, no console of its own), so every
 # git subprocess it starts would otherwise pop its own new visible console window on Windows.
@@ -57,6 +59,7 @@ NOTE_DIR = "notes/sesje/"
 STATUS_ARGS = ["status", "--porcelain", "--untracked-files=all"]
 TESTS = ["python", "-m", "pytest", "-q", "project_files/python/tests"]
 LOG_REL = os.path.join("project_files", "run_files", "auto_sync.log")
+G4_TIMEOUT_S = 1800   # whole suite; a hung test is reported as G4 TIMEOUT, not as an exception
 
 
 # ---------------------------------------------------------------------------------------------
@@ -355,6 +358,17 @@ def run(root, dry_run=False):
                     report.extend(lines[:12])
             except Exception as e:  # noqa: BLE001 - a broken route must not stop the session sync
                 report.append("pub_route: blad %r -- pliki zostaja tutaj" % (e,))
+        if not dry_run:
+            # notes/STAN.json for the HA emergency mode: written before staging so it rides in the
+            # session-note commit; must never stop the sync
+            try:
+                here = os.path.dirname(os.path.abspath(__file__))
+                if here not in sys.path:
+                    sys.path.insert(0, here)
+                import stan_repo
+                report.append("STAN.json: %s" % stan_repo.write_stan(root))
+            except Exception as e:  # noqa: BLE001
+                report.append("STAN.json: blad %r -- pomijam" % (e,))
         entries = parse_status(git(STATUS_ARGS, root, check=True, raw=True))
         last_paths = git(["show", "--pretty=format:", "--name-only", "HEAD"], root).splitlines()
         action, reason, c = decide(entries, last_paths, today, cfg["allow"], cfg["files"], cfg["note"])
@@ -374,7 +388,12 @@ def run(root, dry_run=False):
                 report.append("committed %s" % git(["rev-parse", "--short", "HEAD"], root))
 
         # push guards
-        git(["fetch", "-q", "origin"], root)
+        git_rc(["fetch", "-q", "origin"], root)
+        verdict, why = verify_remote_ref(root, branch, upstream, dry_run)
+        if verdict != "ok":
+            report.append("remote ref: %s" % why)
+            outcome = "local"
+            return outcome, report
         ahead = git(["rev-list", "--count", "%s..HEAD" % upstream], root) or "0"
         behind = git(["rev-list", "--count", "HEAD..%s" % upstream], root) or "0"
         report.append("ahead=%s behind=%s" % (ahead, behind))
@@ -418,12 +437,24 @@ def run(root, dry_run=False):
             # forever on pytest exit code 4 ("no tests ran") -- that killed rule 2.9 here
             report.append("G4 brak testow (%s) -- pominieta" % ", ".join(missing))
         else:
-            cmd = resolve_python(root, cfg["tests"])
+            cmd = with_hang_dump(resolve_python(root, cfg["tests"]))
             report.append("G4 interpreter: %s" % os.path.basename(cmd[0]))
-            t = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8",
-                               errors="replace", timeout=900, **QUIET_SUBPROCESS)
+            try:
+                t = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8",
+                                   errors="replace", timeout=G4_TIMEOUT_S, **QUIET_SUBPROCESS)
+            except subprocess.TimeoutExpired as exc:
+                # said as a gate, not as "error: TimeoutExpired([...])": the report must name G4
+                report.append("G4 pytest TIMEOUT po %d s -- commit zostaje lokalny" % G4_TIMEOUT_S)
+                hung = hung_test(exc.stderr)
+                if hung:
+                    report.append("G4 zawieszony test (faulthandler): %s" % hung)
+                outcome = "local"
+                return outcome, report
             tail = (t.stdout.strip().splitlines() or [""])[-1]
             report.append("G4 pytest rc=%d: %s" % (t.returncode, tail))
+            names = [ln.strip()[:160] for ln in t.stdout.splitlines() if ln.startswith("FAILED ")]
+            if names:
+                report.append("G4 failed tests: %s" % "; ".join(names[:8]))
             if not g4_passed(t.returncode):
                 outcome = "local"
                 return outcome, report
@@ -445,6 +476,182 @@ def run(root, dry_run=False):
         return outcome, report
 
 
+def remote_ref_action(ls_ok, ls_sha, tracking_sha):
+    """Pure: may ahead/behind be computed from the local tracking ref? ZASADY 2.2: the remote is
+    asked directly (ls-remote). -> 'ok' | 'repair' | 'unreadable' | 'no-remote-branch'.
+    F14/J30: a tracking ref of 40 zeros made rev-list fail, the empty answer was read as 0 and
+    auto_sync said 'nothing to push' while the commit was not on the remote."""
+    if not ls_ok:
+        return "unreadable"
+    if not ls_sha:
+        return "no-remote-branch"
+    if tracking_sha == ls_sha:
+        return "ok"
+    return "repair"
+
+
+def _sha_of(text):
+    w = (text or "").split()[0:1]
+    return w[0] if w and re.match(r"^[0-9a-f]{40}$", w[0]) else ""
+
+
+def verify_remote_ref(root, branch, upstream, dry_run=False):
+    """Impure: ask the remote (ls-remote), compare with the tracking ref, repair the local tracking
+    ref with fetch when they differ (never deletes anything on the remote, never --force).
+    -> (verdict, text) with verdict 'ok' or a reason to stay local."""
+    rbranch = upstream.split("/", 1)[1] if upstream.startswith("origin/") else branch
+    rc, out = git_rc(["ls-remote", "origin", "refs/heads/%s" % rbranch], root)
+    ls_sha = _sha_of(out) if rc == 0 else ""
+    trk_rc, trk = git_rc(["rev-parse", "--verify", "-q", "%s^{commit}" % upstream], root)
+    tracking = _sha_of(trk) if trk_rc == 0 else ""
+    act = remote_ref_action(rc == 0, ls_sha, tracking)
+    if act == "ok":
+        return "ok", ""
+    if act == "unreadable":
+        return "unreadable", "local (remote ref unreadable: ls-remote rc=%d)" % rc
+    if act == "no-remote-branch":
+        return "no-remote-branch", "local (remote branch %s missing on origin)" % branch
+    if dry_run:
+        return "repair", "local (dry-run: tracking ref %s != remote %s)" % (tracking[:8] or "BAD", ls_sha[:8])
+    if not tracking:
+        # corrupt local ref (zeros / bad object): it blocks fetch itself ("bad object"), drop the local copy
+        git_rc(["update-ref", "-d", "refs/remotes/%s" % upstream], root)
+    frc, _o = git_rc(["fetch", "-q", "origin"], root)
+    trk_rc, trk = git_rc(["rev-parse", "--verify", "-q", "%s^{commit}" % upstream], root)
+    tracking = _sha_of(trk) if trk_rc == 0 else ""
+    if tracking == ls_sha:
+        return "ok", ""
+    return "unreadable", ("local (remote ref unreadable: tracking %s != remote %s after fetch rc=%d)"
+                          % (tracking[:8] or "BAD", ls_sha[:8], frc))
+
+
+def stale_rebase_state(files):
+    """Pure: is a .git/rebase-merge (or rebase-apply) directory a leftover? `files` = {name: content}.
+    A running rebase always has head-name and onto with content; a directory holding only `autostash`
+    (or empty head-name / onto) is what an interrupted `pull --rebase --autostash` leaves behind.
+    -> (stale?, autostash sha or ''). 2026-11-12: spoiwo kept such a directory from 2026-11-09, every
+    `pull --rebase` died with rc=128 and 190 commits stayed on one machine for three days."""
+    if files is None:
+        return False, ""
+    running = (files.get("head-name") or "").strip() and (files.get("onto") or "").strip()
+    if running:
+        return False, ""
+    sha = (files.get("autostash") or "").strip()
+    return True, sha if re.match(r"^[0-9a-f]{40}$", sha) else ""
+
+
+def stale_rebase_dir(root):
+    """Path of a leftover rebase directory in `root`, or ''. Reads at most a few small files."""
+    gitdir = git(["rev-parse", "--absolute-git-dir"], root) or os.path.join(root, ".git")
+    for sub in ("rebase-merge", "rebase-apply"):
+        d = os.path.join(gitdir, sub)
+        if not os.path.isdir(d):
+            continue
+        files = {}
+        for n in ("head-name", "onto", "autostash"):
+            try:
+                with open(os.path.join(d, n), encoding="utf-8", errors="replace") as fh:
+                    files[n] = fh.read(200)
+            except OSError:
+                pass
+        if stale_rebase_state(files)[0]:
+            return d
+    return ""
+
+
+def heal_stale_rebase(root):
+    """Keep the autostash in `git stash list` (nothing is lost), then remove the leftover directory.
+    -> note for the report, '' when there was nothing to do."""
+    d = stale_rebase_dir(root)
+    if not d:
+        return ""
+    files = {}
+    try:
+        with open(os.path.join(d, "autostash"), encoding="utf-8", errors="replace") as fh:
+            files["autostash"] = fh.read(200)
+    except OSError:
+        pass
+    _stale, sha = stale_rebase_state(files)
+    kept = ""
+    if sha:
+        rc, _ = git_rc(["stash", "store", "-m", "autostash z porzuconego rebase (auto_sync)", sha], root)
+        if rc != 0:
+            return "porzucony %s z autostash %s: stash store nieudany -- zostawiam" % (os.path.basename(d), sha[:8])
+        kept = ", autostash %s w git stash list" % sha[:8]
+    import shutil
+    shutil.rmtree(d, ignore_errors=True)
+    return "usunieto porzucony %s%s" % (os.path.basename(d), kept)
+
+
+RUN_LOCK_STALE_S = G4_TIMEOUT_S + 1800   # a run never lasts longer; an older lock is a dead process
+
+
+def lock_decision(info, now, stale_s=RUN_LOCK_STALE_S):
+    """Pure: (run?, why). `info` = (pid, started epoch) of the lock held by another run, or None.
+    2026-11-12: Stop/SessionEnd hooks of several windows started auto-sync on the hub at 15:27, 15:35 and
+    16:00; three full pytest runs on one tree overlapped and each hit the 1800 s limit (alone: 1053 s)."""
+    if not info:
+        return True, "wolne"
+    age = now - info[1]
+    if age >= stale_s:
+        return True, "zamek po martwym przebiegu (%d s) -- przejmuje" % age
+    return False, "inny auto-sync tego repo trwa od %d s (pid %s)" % (age, info[0])
+
+
+def _lock_path(root):
+    return os.path.join(git(["rev-parse", "--absolute-git-dir"], root) or os.path.join(root, ".git"), "auto_sync.lock")
+
+
+def acquire_run_lock(root):
+    """Takes the lock when it is free (O_EXCL), else returns (pid, started) of the holder."""
+    path = _lock_path(root)
+    try:
+        fd = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
+        with os.fdopen(fd, "w") as fh:
+            fh.write("%d %f" % (os.getpid(), time.time()))
+        return None
+    except FileExistsError:
+        try:
+            with open(path, encoding="ascii", errors="replace") as fh:
+                pid, started = fh.read().split()[:2]
+            info = (pid, float(started))
+        except (OSError, ValueError):
+            info = ("?", os.path.getmtime(path) if os.path.exists(path) else 0.0)
+        if time.time() - info[1] >= RUN_LOCK_STALE_S:
+            with open(path, "w", encoding="ascii") as fh:
+                fh.write("%d %f" % (os.getpid(), time.time()))
+        return info
+    except OSError:
+        return None
+
+
+def release_run_lock(root):
+    try:
+        path = _lock_path(root)
+        with open(path, encoding="ascii", errors="replace") as fh:
+            mine = fh.read().split()[:1] == [str(os.getpid())]
+        if mine:
+            os.remove(path)
+    except (OSError, ValueError):
+        pass
+
+
+def with_hang_dump(cmd):
+    """pytest prints the stack of every thread when one test runs longer than 300 s, so a G4 TIMEOUT
+    names the hung test instead of 'rc=143' and a row of dots. Pure."""
+    if any("pytest" in str(c) for c in cmd) and not any("faulthandler_timeout" in str(c) for c in cmd):
+        return list(cmd) + ["-o", "faulthandler_timeout=300"]
+    return list(cmd)
+
+
+def hung_test(stderr):
+    """Last test file line of a faulthandler dump, '' when none. Pure."""
+    if isinstance(stderr, bytes):
+        stderr = stderr.decode("utf-8", "replace")
+    hits = [l.strip() for l in (stderr or "").splitlines() if "File " in l and "test_" in l]
+    return hits[-1][:200] if hits else ""
+
+
 def rebase_outcome(rc, conflicts):
     """Pure: (ok, note) for a `git pull --rebase --autostash` result. A conflict is not a failure to
     hide -- it is the one case a human has to look at, so the commit stays local and says why."""
@@ -460,7 +667,11 @@ def git_rc(args, cwd):
     """(returncode, stdout) -- git() swallows the code, and here the code is the decision."""
     r = subprocess.run(["git"] + args, cwd=cwd, capture_output=True, text=True,
                        encoding="utf-8", errors="replace", **QUIET_SUBPROCESS)
+    _LAST_ERR[0] = (r.stderr or "").strip()
     return r.returncode, r.stdout
+
+
+_LAST_ERR = [""]   # stderr of the last git_rc: "rc=128" alone hid a leftover rebase dir for 3 days
 
 
 # Files where conflicts are always resolvable without human input:
@@ -509,9 +720,47 @@ def _try_auto_resolve(root, conflicts):
     return resolved, remaining
 
 
-def rebase_onto_upstream(root):
+def _rebase_running(root):
+    gitdir = git(["rev-parse", "--absolute-git-dir"], root) or os.path.join(root, ".git")
+    return any(os.path.isdir(os.path.join(gitdir, d)) for d in ("rebase-merge", "rebase-apply"))
+
+
+def _abort_rebase(root, tries=3, pause=3.0):
+    """`rebase --abort` until no rebase directory is left. 2026-11-12: an abort that met another
+    process's index.lock left spoiwo detached in the middle of a 190-commit rebase."""
+    for _ in range(tries):
+        git(["rebase", "--abort"], root)
+        if not _rebase_running(root):
+            return True
+        time.sleep(pause)
+    return False
+
+
+def lock_collision(note):
+    """Pure: the rebase failed only because another git process held index.lock (spoiwo commits every
+    10 min from the voice gateway) -- worth one retry, not a human."""
+    return "index.lock" in (note or "")
+
+
+def rebase_onto_upstream(root, retry_pause=10.0):
+    """Heal a leftover rebase dir, pull --rebase; one retry after an index.lock collision."""
+    healed = heal_stale_rebase(root)
+    ok, note = _pull_rebase_once(root)
+    if not ok and lock_collision(note):
+        time.sleep(retry_pause)
+        ok, note = _pull_rebase_once(root)
+        note = "po kolizji index.lock ponowiono: " + note
+    if not ok and _rebase_running(root):
+        note += " ; UWAGA: rebase nadal w toku, repo do sprawdzenia recznie"
+    if healed:
+        note = healed + "; " + note
+    return ok, note
+
+
+def _pull_rebase_once(root):
     """pull --rebase --autostash; tries to auto-resolve known conflict patterns before aborting."""
     rc, _ = git_rc(["pull", "--rebase", "--autostash"], root)
+    err = _LAST_ERR[0]
     conflicts = [ln for ln in git(["diff", "--name-only", "--diff-filter=U"], root).splitlines()
                  if ln.strip()]
     if conflicts:
@@ -520,14 +769,18 @@ def rebase_onto_upstream(root):
             rc2, _ = git_rc(["rebase", "--continue"], root)
             if rc2 == 0:
                 return True, "pull --rebase z auto-rozwiazaniem (%s)" % ", ".join(resolved)
-            git(["rebase", "--abort"], root)
+            _abort_rebase(root)
             return False, "rebase --continue nieudany po auto-rozwiazaniu -- commit lokalny"
-        git(["rebase", "--abort"], root)
+        _abort_rebase(root)
         label = ", ".join(remaining[:3]) if remaining else ", ".join(c.split(":")[0] for c in resolved)
         return False, "KONFLIKT przy rebase (%s) -- commit zostaje lokalny, rozwiaz recznie" % label
     ok, note = rebase_outcome(rc, [])
     if not ok:
-        git(["rebase", "--abort"], root)
+        _abort_rebase(root)
+        if err:
+            lines = err.splitlines()
+            key = [l for l in lines if l.startswith(("fatal:", "error:"))] or lines[-1:]
+            note += " [%s]" % key[0][:160]
     return ok, note
 
 
@@ -573,7 +826,14 @@ def main(argv=None) -> int:
     if a.spawn:
         spawn_detached(root)
         return 0
-    outcome, report = run(root, dry_run=a.dry_run)
+    take, why = lock_decision(acquire_run_lock(root), time.time())
+    if not take:
+        outcome, report = "skipped", ["root=%s" % root, "skip: %s" % why]
+    else:
+        try:
+            outcome, report = run(root, dry_run=a.dry_run)
+        finally:
+            release_run_lock(root)
     log_block(root, [outcome] + report)
     reason = report[-1] if report else ""
     if not a.dry_run:

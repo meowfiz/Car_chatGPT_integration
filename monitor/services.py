@@ -105,6 +105,25 @@ def port_open(host, port, timeout=PROBE_TIMEOUT_S, connect=None):
         return False
 
 
+GIT_REAL_DIRS = ("C:/Program Files/Git/mingw64/bin",)
+
+
+def real_git_first(env, dirs=GIT_REAL_DIRS, exists=os.path.isdir):
+    """env with the real git directory first on PATH, so every `git` a windowless service starts is git.exe itself,
+    not the cmd/git.exe shim. Measured 2026-11-13: the shim started from pythonw flashed a Windows Terminal window
+    that took the keyboard (3 focus steals in 6 fetches via the shim, 1 via the real binary). Pure given `exists`."""
+    if os.name != "nt" and exists is os.path.isdir:
+        return env
+    have = [d for d in dirs if exists(d)]
+    if not have:
+        return env
+    key = next((k for k in env if k.upper() == "PATH"), "PATH")
+    parts = [p for p in env.get(key, "").split(os.pathsep) if p and p.replace(chr(92), "/").rstrip("/") not in have]
+    out = dict(env)
+    out[key] = os.pathsep.join(have + parts)
+    return out
+
+
 def spawn_detached(args, cwd=None, env=None, log=None):
     """Start a process that outlives this one and shows no console window. `env`: extra variables.
     `log`: path of a file the output is appended to (default: discarded)."""
@@ -114,8 +133,7 @@ def spawn_detached(args, cwd=None, env=None, log=None):
         out = open(log, "ab")
     kw = {"stdin": subprocess.DEVNULL, "stdout": out, "stderr": subprocess.STDOUT if log else subprocess.DEVNULL,
           "close_fds": True, "cwd": cwd or os.path.expanduser("~")}
-    if env:
-        kw["env"] = dict(os.environ, **env)
+    kw["env"] = real_git_first(dict(os.environ, **(env or {})))
     if os.name == "nt":
         kw["creationflags"] = 0x00000008 | 0x00000200  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
     else:
@@ -562,6 +580,70 @@ def stop_gpuwatch(cfg, kill=os.kill):
     return "stopped" if stopped else "not-running"
 
 
+# -- lowprio (ciezkie obliczenia innych projektow ponizej narzedzi interaktywnych) --------------------------
+# low_prio.py co 30 s ustawia BELOW_NORMAL konsolowym python.exe spoza listy chronionej (relay, brama, workery).
+# Nic nie zabija. Zywotnosc: swiezosc locka jak gpuwatch.
+LOWPRIO = os.path.join(HERE, "low_prio.py")
+LOWPRIO_LOCK = os.path.join(tempfile.gettempdir(), "monitor_low_prio.lock")
+LOWPRIO_EVERY_S = float(os.environ.get("LOW_PRIO_EVERY_S", "30"))
+
+
+def lowprio_state(cfg, now=None, probe=None):
+    live = ask_worker.lock_is_live(LOWPRIO_LOCK, time.time() if now is None else now, max(LOWPRIO_EVERY_S, 10.0))
+    return (STATE_UP if live else STATE_DOWN), "obnizony priorytet ciezkich obliczen innych projektow (co %ds)" % int(LOWPRIO_EVERY_S)
+
+
+def start_lowprio(cfg):
+    if os.name != "nt":
+        return "skipped"
+    if lowprio_state(cfg)[0] == STATE_UP:
+        return "running"
+    proc = spawn_detached([quiet_interpreter(), LOWPRIO], cwd=ROOT)
+    write_pid(LOWPRIO_LOCK, proc.pid)
+    return "spawned"
+
+
+def stop_lowprio(cfg, kill=os.kill):
+    stopped = kill_pid(read_pid(LOWPRIO_LOCK), kill)
+    try:
+        os.remove(LOWPRIO_LOCK)
+    except OSError:
+        pass
+    return "stopped" if stopped else "not-running"
+
+
+# -- pushwatch (nadzor: czy wszystko wypchniete) ------------------------------------------------------------
+# push_watch.py co 5 min zglasza repo z commitami przed origin dluzej niz 30 min, za origin (czyste drzewo) dluzej niz 6 h
+# albo ze sledzonym plikiem zmienionym bez commitu ponad 12 h. Niczego nie commituje ani nie pushuje.
+PUSHWATCH = os.path.join(HERE, "push_watch.py")
+PUSHWATCH_LOCK = os.path.join(tempfile.gettempdir(), "monitor_push_watch.lock")
+PUSHWATCH_EVERY_S = float(os.environ.get("PUSH_WATCH_EVERY_S", "300"))
+
+
+def pushwatch_state(cfg, now=None, probe=None):
+    live = ask_worker.lock_is_live(PUSHWATCH_LOCK, time.time() if now is None else now, max(PUSHWATCH_EVERY_S * 2, 60.0))
+    return (STATE_UP if live else STATE_DOWN), "nadzor wypchniecia repozytoriow (co %d min)" % int(PUSHWATCH_EVERY_S // 60)
+
+
+def start_pushwatch(cfg):
+    if os.name != "nt":
+        return "skipped"
+    if pushwatch_state(cfg)[0] == STATE_UP:
+        return "running"
+    proc = spawn_detached([quiet_interpreter(), PUSHWATCH], cwd=ROOT)
+    write_pid(PUSHWATCH_LOCK, proc.pid)
+    return "spawned"
+
+
+def stop_pushwatch(cfg, kill=os.kill):
+    stopped = kill_pid(read_pid(PUSHWATCH_LOCK), kill)
+    try:
+        os.remove(PUSHWATCH_LOCK)
+    except OSError:
+        pass
+    return "stopped" if stopped else "not-running"
+
+
 # -- ledger (slad promptow, opsx slad-promptow D16) ---------------------------------
 # transcript_ledger.py --loop 120 czyta transkrypty Claude Code (~/.claude/projects) i dopisuje prompty
 # i wywolania modeli do ~/.claude/prompts/RRRR-MM-DD.jsonl. Nie uzywa tokenow, wiec nie jest w
@@ -607,11 +689,60 @@ def stop_ledger(cfg, kill=os.kill):
 # -- twins (automat lekkich glosow) -----------------------------------------------
 # tools/light_voices.py auto --every 600: nowe glosy z VCC -> nagrania -> douczanie -> test ->
 # publikacja na Pi -> mail. Petla nie dotyka locka (etap uczenia trwa godzinami), wiec zywotnosc to
-# plik pid z start_twins + sprawdzenie, czy proces o tym pid istnieje (brak locka swiezosci).
+# plik pid z start_twins + sprawdzenie, czy proces o tym pid istnieje (brak locka swiezosci),
+# ALBO blokada systemowa, ktora automat trzyma na auto.lock (single_instance w light_voices.py).
+# 2026-11-10: plik pid wskazywal martwy proces, automat chodzil od 6 dni -> tabela mowila
+# "nie dziala", a straznik co 5 min odpalal kolejny automat, ktory konczyl na blokadzie i
+# nadpisywal plik pid swoim (ponad 1000 razy). Blokada jest prawda, plik pid tylko adresem.
 TWINS = os.path.join(ROOT, "tools", "light_voices.py")
 TWINS_LOCK = os.path.join(tempfile.gettempdir(), "monitor_twins.lock")
+TWINS_AUTO_LOCK = os.path.join(ROOT, "project_files", "run_files", "light_voices", "auto.lock")
 TWINS_EVERY_S = 600
+TWINS_SETTLE_S = 3.0     # an automat that lost the lock exits within a second
 TWINS_LOG = os.path.join(ROOT, "project_files", "run_files", "light_voices", "auto.log")
+
+
+def lock_held(path):
+    """Does another process hold the exclusive OS lock on `path` (the one single_instance() takes)?
+    The probe takes the lock for an instant and gives it back; a missing file means nobody holds it."""
+    if not os.path.exists(path):
+        return False
+    try:
+        fh = open(path, "a+")
+    except OSError:
+        return False
+    try:
+        if os.name == "nt":
+            import msvcrt
+            fh.seek(0)
+            msvcrt.locking(fh.fileno(), msvcrt.LK_NBLCK, 1)
+            fh.seek(0)
+            msvcrt.locking(fh.fileno(), msvcrt.LK_UNLCK, 1)
+        else:
+            import fcntl
+            fcntl.flock(fh.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fcntl.flock(fh.fileno(), fcntl.LOCK_UN)
+        return False
+    except OSError:
+        return True
+    finally:
+        fh.close()
+
+
+def twins_pids():
+    """Pids of every running `light_voices.py auto` on this machine, whoever started it."""
+    try:
+        if os.name == "nt":
+            cmd = ["powershell", "-NoProfile", "-Command",
+                   "Get-CimInstance Win32_Process -Filter \"Name like 'python%'\" | "
+                   "Where-Object { $_.CommandLine -like '*light_voices.py* auto*' } | "
+                   "ForEach-Object { $_.ProcessId }"]
+        else:
+            cmd = ["pgrep", "-f", r"light_voices\.py.* auto"]
+        out = subprocess.run(cmd, capture_output=True, timeout=30, **QUIET)
+        return [int(x) for x in out.stdout.decode("utf-8", "replace").split() if x.isdigit()]
+    except (OSError, subprocess.SubprocessError):
+        return []
 
 
 def pid_alive(pid):
@@ -638,14 +769,16 @@ def _twins_disabled():
 
 
 def twins_state(cfg, now=None, probe=None):
-    """Automat lekkich glosow. Zywotnosc: pid_alive(pid z TWINS_LOCK) (testy podmieniaja pid_alive)."""
+    """Automat lekkich glosow. Zywotnosc: pid_alive(pid z TWINS_LOCK) albo blokada automatu trzymana
+    przez proces, ktorego pid nie znamy (testy podmieniaja pid_alive i lock_held)."""
     if not os.path.exists(TWINS):
         return STATE_OFF, "brak tools/light_voices.py (nie dotyczy)"
     if not vcc_repo():
         return STATE_OFF, "ta maszyna nie ma klonu VideoContentCreator (nie dotyczy)"
     if _twins_disabled():
         return STATE_OFF, "wylaczone per voice.env (VOICE_TWINS_ENABLED=0)"
-    up = bool(pid_alive(read_pid(TWINS_LOCK)))   # `probe` is the port connector: not for pids
+    # `probe` is the port connector: not for pids
+    up = bool(pid_alive(read_pid(TWINS_LOCK))) or lock_held(TWINS_AUTO_LOCK)
     return (STATE_UP if up else STATE_DOWN), \
         "automat lekkich glosow: nowe glosy z VCC -> nagrania, douczanie, test, publikacja na Pi, mail"
 
@@ -658,12 +791,21 @@ def start_twins(cfg):
         return "running"
     proc = spawn_detached([quiet_interpreter(), TWINS, "auto", "--every", str(TWINS_EVERY_S)],
                           cwd=ROOT, log=TWINS_LOG)
-    write_pid(TWINS_LOCK, proc.pid)
-    return "spawned"
+    try:
+        proc.wait(timeout=TWINS_SETTLE_S)
+    except subprocess.TimeoutExpired:
+        write_pid(TWINS_LOCK, proc.pid)      # still alive: it holds the automat lock
+        return "spawned"
+    # It exited at once: another automat won the lock. Its pid must not replace the winner's.
+    return "running" if lock_held(TWINS_AUTO_LOCK) else "failed"
 
 
-def stop_twins(cfg, kill=os.kill):
-    stopped = kill_pid(read_pid(TWINS_LOCK), kill)
+def stop_twins(cfg, kill=os.kill, find=None):
+    known = read_pid(TWINS_LOCK)
+    stopped = kill_pid(known, kill)
+    for pid in (find or twins_pids)():       # automats this file never recorded (2026-11-10)
+        if pid != known:
+            stopped = kill_pid(pid, kill) or stopped
     try:
         os.remove(TWINS_LOCK)
     except OSError:
@@ -742,17 +884,235 @@ def stop_mail_inbox(cfg, kill=os.kill):
     return "stopped" if stopped else "not-running"
 
 
+# -- raport dnia (openspec raport-dnia-pdf) ------------------------------------------------------------------
+# tools/daily_report.py --petla co 5 min dotyka zamka i po godzinie z config/raport_dnia.json wysyla PDF dnia
+# mailem do wlasciciela. Dziala tylko na JEDNEJ maszynie (pole "maszyna"), zeby nie przychodzily dwa maile,
+# i tylko z "wlaczone": true. Nie jest w TOKEN_SERVICES: przy pauzie tokenow raport idzie z szablonem, bez modelu.
+REPORT = os.path.join(ROOT, "tools", "daily_report.py")
+REPORT_CFG = os.path.join(ROOT, "config", "raport_dnia.json")
+REPORT_LOCK = os.path.join(tempfile.gettempdir(), "monitor_daily_report.lock")
+REPORT_EVERY_S = 300
+REPORT_LOG = os.path.join(ROOT, "project_files", "run_files", "raport_dnia", "service.log")
+
+
+def report_applies(cfg_path=None, machine=None):
+    """(True, hour) or (False, why not). Pure given the config file and the machine name."""
+    if not os.path.exists(REPORT):
+        return False, "brak tools/daily_report.py (nie dotyczy)"
+    try:
+        with open(cfg_path or REPORT_CFG, encoding="utf-8") as f:
+            rc = json.load(f) or {}
+    except (OSError, ValueError):
+        return False, "brak lub zly config/raport_dnia.json"
+    if not rc.get("wlaczone"):
+        return False, "wylaczony w config/raport_dnia.json (wlaczone=false)"
+    here = (machine or heartbeat.load_config().get("MONITOR_MACHINE") or platform.node()).lower()
+    want = str(rc.get("maszyna") or "").lower()
+    if not want or here.replace("desktop-", "") != want.replace("desktop-", ""):
+        return False, "raport wysyla maszyna %s (nie ta)" % (rc.get("maszyna") or "?")
+    return True, rc.get("godzina") or "21:00"
+
+
+def report_state(cfg, now=None, probe=None, applies=None):
+    ok, why = (applies or report_applies)()
+    if not ok:
+        return STATE_OFF, why
+    live = ask_worker.lock_is_live(REPORT_LOCK, time.time() if now is None else now, REPORT_EVERY_S)
+    return (STATE_UP if live else STATE_DOWN), "raport dnia PDF mailem o %s" % why
+
+
+def start_report(cfg):
+    state = report_state(cfg)[0]
+    if state == STATE_OFF:
+        return "skipped"
+    if state == STATE_UP:
+        return "running"
+    proc = spawn_detached([quiet_interpreter(), REPORT, "--petla"], cwd=ROOT, log=REPORT_LOG)
+    write_pid(REPORT_LOCK, proc.pid)
+    return "spawned"
+
+
+def stop_report(cfg, kill=os.kill):
+    stopped = kill_pid(read_pid(REPORT_LOCK), kill)
+    try:
+        os.remove(REPORT_LOCK)
+    except OSError:
+        pass
+    return "stopped" if stopped else "not-running"
+
+
+# -- teraz (kafle widoku 'Teraz' w HA, openspec dashboard-teraz-kafle) ----------------------------------------------
+# tools/dashboard_teraz.py --petla co 60 s czyta /api/state monitora i notatki dnia projektow, liczy kafle i wysyla
+# do HA jeden sensor (sensor.teraz_kafle). Jeden pisarz: ta sama maszyna co raport dnia (pole "maszyna"
+# w config/raport_dnia.json), niezaleznie od "wlaczone". Bez tokenow modelu.
+TERAZ = os.path.join(ROOT, "tools", "dashboard_teraz.py")
+TERAZ_LOCK = os.path.join(tempfile.gettempdir(), "monitor_teraz.lock")
+TERAZ_EVERY_S = 60
+TERAZ_LOG = os.path.join(ROOT, "project_files", "run_files", "teraz", "service.log")
+
+
+def teraz_applies(cfg_path=None, machine=None):
+    """(True, '') or (False, why not). Pure given the config file and the machine name."""
+    if not os.path.exists(TERAZ):
+        return False, "brak tools/dashboard_teraz.py (nie dotyczy)"
+    try:
+        with open(cfg_path or REPORT_CFG, encoding="utf-8") as f:
+            want = str((json.load(f) or {}).get("maszyna") or "").lower()
+    except (OSError, ValueError):
+        return False, "brak lub zly config/raport_dnia.json"
+    here = (machine or heartbeat.load_config().get("MONITOR_MACHINE") or platform.node()).lower()
+    if not want or here.replace("desktop-", "") != want.replace("desktop-", ""):
+        return False, "kafle publikuje maszyna %s (nie ta)" % (want or "?")
+    return True, ""
+
+
+def teraz_state(cfg, now=None, probe=None, applies=None):
+    ok, why = (applies or teraz_applies)()
+    if not ok:
+        return STATE_OFF, why
+    # the first round fetches every clone (~100 s), so the lock may be that old once
+    live = ask_worker.lock_is_live(TERAZ_LOCK, time.time() if now is None else now, 600.0)  # a round can take minutes; the loop itself refuses a second copy
+    return (STATE_UP if live else STATE_DOWN), "kafle widoku Teraz w HA (co %d s)" % TERAZ_EVERY_S
+
+
+def start_teraz(cfg):
+    state = teraz_state(cfg)[0]
+    if state == STATE_OFF:
+        return "skipped"
+    if state == STATE_UP:
+        return "running"
+    os.makedirs(os.path.dirname(TERAZ_LOG), exist_ok=True)
+    proc = spawn_detached([quiet_interpreter(), TERAZ, "--petla", "--co", str(TERAZ_EVERY_S), "--lock", TERAZ_LOCK],
+                          cwd=ROOT, log=TERAZ_LOG)
+    write_pid(TERAZ_LOCK, proc.pid)
+    return "spawned"
+
+
+def stop_teraz(cfg, kill=os.kill):
+    stopped = kill_pid(read_pid(TERAZ_LOCK), kill)
+    try:
+        os.remove(TERAZ_LOCK)
+    except OSError:
+        pass
+    return "stopped" if stopped else "not-running"
+
+
+# -- zbieranie nagran z auta, pomiar turbo wobec large-v3 (openspec lekkie-modele, etap 1c) ---------------------
+# tools/stt_collect_worker.py --petla liczy turbo na nagraniach zapisanych przez bramke (STT_COLLECT=1 w voice.env),
+# gdy karta jest wolna i nie ma ruchu glosowego; sam odswieza zamek (--lock). Nie dotyczy maszyny bez zbierania.
+STTCOLL = os.path.join(ROOT, "tools", "stt_collect_worker.py")
+STTCOLL_LOCK = os.path.join(tempfile.gettempdir(), "monitor_stt_collect.lock")
+STTCOLL_EVERY_S = 60
+STTCOLL_LOG = os.path.join(ROOT, "project_files", "run_files", "stt_collect", "service.log")
+VOICE_ENV = os.path.join(os.path.expanduser("~"), ".claude", "voice.env")
+
+
+def stt_collect_enabled(path=None):
+    """True when voice.env has STT_COLLECT=1 (the gateway then records car utterances). Pure given the file."""
+    try:
+        with open(path or VOICE_ENV, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                k, _, v = line.strip().partition("=")
+                if k.strip() == "STT_COLLECT":
+                    return v.strip() in ("1", "true", "yes")
+    except OSError:
+        pass
+    return False
+
+
+def stt_collect_state(cfg, now=None, probe=None):
+    if not os.path.exists(STTCOLL):
+        return STATE_OFF, "brak tools/stt_collect_worker.py (nie dotyczy)"
+    if not stt_collect_enabled():
+        return STATE_OFF, "zbieranie wylaczone (STT_COLLECT w voice.env)"
+    live = ask_worker.lock_is_live(STTCOLL_LOCK, time.time() if now is None else now, STTCOLL_EVERY_S)
+    return (STATE_UP if live else STATE_DOWN), "pomiar turbo wobec large-v3 na nagraniach z auta (karta tylko gdy wolna)"
+
+
+def start_stt_collect(cfg):
+    state = stt_collect_state(cfg)[0]
+    if state == STATE_OFF:
+        return "skipped"
+    if state == STATE_UP:
+        return "running"
+    proc = spawn_detached([quiet_interpreter(), STTCOLL, "--petla", "--co", str(STTCOLL_EVERY_S), "--lock", STTCOLL_LOCK],
+                          cwd=ROOT, log=STTCOLL_LOG)
+    write_pid(STTCOLL_LOCK, proc.pid)
+    return "spawned"
+
+
+def stop_stt_collect(cfg, kill=os.kill):
+    stopped = kill_pid(read_pid(STTCOLL_LOCK), kill)
+    try:
+        os.remove(STTCOLL_LOCK)
+    except OSError:
+        pass
+    return "stopped" if stopped else "not-running"
+
+
+# -- lokalny model rozmowy glosowej (decyzja wlasciciela 2026-11-13: Bielik zamiast Haiku w rozmowie, na probe) ---
+# llama-server z Bielik-11B-v3.1 Q4_K_M, 28 warstw na karcie (z Whisperem 9,9 GB z 10,75; eksp. 3 lekkie-modele).
+# Wlaczany VOICE_BRAIN_LOCAL=1 w voice.env; bramka wraca do Haiku, gdy serwer nie odpowiada (voice_brain.FallbackBrain).
+LLM_DIR = os.path.join(ROOT, "project_files", "run_files", "modele_lekkie")
+LLM_EXE = os.path.join(LLM_DIR, "llama.cpp-cuda", "llama-server.exe")
+LLM_MODEL = os.path.join(LLM_DIR, "bielik11", "Bielik-11B-v3.1-Instruct.Q4_K_M.gguf")
+LLM_PORT = 8092
+LLM_LOCK = os.path.join(tempfile.gettempdir(), "monitor_llm_local.lock")
+LLM_LOG = os.path.join(ROOT, "project_files", "run_files", "modele_lekkie", "voice_llm.log")
+
+
+def llm_cmd(exe=LLM_EXE, model=LLM_MODEL, port=LLM_PORT, ngl=28):
+    """The llama-server command line, the eksp. 3 configuration; ngl = layers on the card (VOICE_LLM_NGL in
+    voice.env: the card is shared with Whisper and VCC, so the number is set from a measurement). Pure."""
+    return [exe, "-m", model, "-ngl", str(int(ngl)), "-c", "4096", "-t", "8", "--host", "127.0.0.1", "--port", str(port)]
+
+
+def llm_state(cfg, now=None, probe=None):
+    if (_voice_env_value("VOICE_BRAIN_LOCAL") or "") not in ("1", "true", "yes"):
+        return STATE_OFF, "wylaczony (VOICE_BRAIN_LOCAL w voice.env); rozmowa glosowa na Haiku"
+    if not (os.path.exists(LLM_EXE) and os.path.exists(LLM_MODEL)):
+        return STATE_OFF, "brak llama-server albo modelu Bielik-11B na tej maszynie"
+    up = port_open("127.0.0.1", LLM_PORT, connect=probe)
+    return (STATE_UP if up else STATE_DOWN), "Bielik-11B do rozmowy glosowej na 127.0.0.1:%d (zapas: Haiku)" % LLM_PORT
+
+
+def start_llm(cfg):
+    state = llm_state(cfg)[0]
+    if state == STATE_OFF:
+        return "skipped"
+    if state == STATE_UP:
+        return "running"
+    proc = spawn_detached(llm_cmd(ngl=_voice_env_value("VOICE_LLM_NGL") or 28), cwd=LLM_DIR, log=LLM_LOG)
+    write_pid(LLM_LOCK, proc.pid)
+    return "spawned"
+
+
+def stop_llm(cfg, kill=os.kill):
+    stopped = kill_pid(read_pid(LLM_LOCK), kill)
+    try:
+        os.remove(LLM_LOCK)
+    except OSError:
+        pass
+    return "stopped" if stopped else "not-running"
+
+
 SERVICES = [
     ("ask", "worker pytan", ask_state, start_ask, stop_ask),
     ("execute", "worker zlecen", execute_state, start_execute, stop_execute),
     ("vcc", "serwer glosow", vcc_state, start_vcc, stop_vcc),
     ("gpuwatch", "czujnik GPU", gpuwatch_state, start_gpuwatch, stop_gpuwatch),
+    ("lowprio", "priorytet obliczen", lowprio_state, start_lowprio, stop_lowprio),
+    ("pushwatch", "nadzor wypchniecia", pushwatch_state, start_pushwatch, stop_pushwatch),
     ("ledger", "slad promptow", ledger_state, start_ledger, stop_ledger),
     ("twins", "lekkie glosy", twins_state, start_twins, stop_twins),
+    ("llm", "model rozmowy", llm_state, start_llm, stop_llm),
     ("voice", "bramka glosowa", gateway_state, start_gateway, stop_gateway),
     ("dashboards", "dashboardy HA", dashboards_state, start_dashboards, stop_dashboards),
     ("bridge", "okna zdalnie", bridge_state, start_bridge, stop_bridge),
     ("mail", "zlecenia mailem", mail_inbox_state, start_mail_inbox, stop_mail_inbox),
+    ("raport", "raport dnia", report_state, start_report, stop_report),
+    ("teraz", "kafle Teraz w HA", teraz_state, start_teraz, stop_teraz),
+    ("sttzbieranie", "zbieranie nagran STT", stt_collect_state, start_stt_collect, stop_stt_collect),
 ]
 
 
@@ -839,6 +1199,69 @@ def wait_until_down(names, deadline_s=3.0, sleep=time.sleep, probe=None):
     return False
 
 
+# -- Tailscale certificate: renewed by the watchdog, not by whoever types "start" ---------------------
+# 2026-11-12 (user: "zeby nie trzeba bylo go aktualizowac tak czesto"): the certificate (Let's Encrypt via
+# `tailscale cert`, 90 days -- not extendable) was renewed only by ready.py --apply, i.e. when someone started a
+# session; a machine nobody sat at would lose its microphone page after 90 days. The watchdog (every 5 min,
+# `--start --quiet`) now renews it when < CERT_RENEW_DAYS are left and restarts the two services that read it
+# at start (voice, bridge). A failed attempt is retried after CERT_RETRY_S, not every 5 minutes.
+CERT_DIR = os.path.join(os.path.expanduser("~"), ".claude", "certs")
+CERT_RENEW_DAYS = 30
+CERT_RETRY_S = 6 * 3600
+CERT_STAMP = os.path.join(CERT_DIR, "renew_attempt.txt")
+
+
+def cert_renewal_due(days_left, last_attempt, now, min_days=CERT_RENEW_DAYS, retry_s=CERT_RETRY_S):
+    """True when the certificate is missing or has fewer than `min_days` left AND the last attempt (epoch s, or
+    None) is older than `retry_s`. Pure."""
+    if days_left is not None and days_left >= min_days:
+        return False
+    return last_attempt is None or now - last_attempt >= retry_s
+
+
+def cert_days_left(path):
+    """Days to notAfter of a PEM file, None for a missing or non-PEM one (stdlib only)."""
+    import ssl
+    try:
+        with open(path, encoding="ascii", errors="ignore") as fh:
+            if "-----BEGIN CERTIFICATE-----" not in fh.read():
+                return None
+        info = ssl._ssl._test_decode_cert(path)  # noqa: SLF001 - same call as ready.py, no extra dependency
+        return (ssl.cert_time_to_seconds(info["notAfter"]) - time.time()) / 86400.0
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def renew_cert(cert_dir=CERT_DIR, stamp=CERT_STAMP, now=None, run=None):
+    """Renew this machine's Tailscale certificate when due. -> 'ok' (renewed), 'fresh' (nothing to do),
+    'wait' (failed recently, retry later) or 'fail'. Never raises: the watchdog must go on starting services."""
+    now = time.time() if now is None else now
+    run = run or (lambda a, t: subprocess.run(a, capture_output=True, text=True, encoding="utf-8",
+                                              errors="replace", timeout=t, **QUIET))
+    try:
+        name = json.loads(run(["tailscale", "status", "--json"], 20).stdout)["Self"]["DNSName"].rstrip(".")
+    except Exception:  # noqa: BLE001 - no Tailscale: nothing to renew here
+        return "fresh"
+    crt, key = os.path.join(cert_dir, name + ".crt"), os.path.join(cert_dir, name + ".key")
+    days = cert_days_left(crt) if os.path.exists(key) else None
+    try:
+        with open(stamp, encoding="utf-8") as fh:
+            last = float(fh.read().strip())
+    except (OSError, ValueError):
+        last = None
+    if not cert_renewal_due(days, last, now):
+        return "fresh" if (days is not None and days >= CERT_RENEW_DAYS) else "wait"
+    os.makedirs(cert_dir, exist_ok=True)
+    with open(stamp, "w", encoding="utf-8") as fh:
+        fh.write(str(now))
+    try:
+        r = run(["tailscale", "cert", "--min-validity", "720h", "--cert-file", crt, "--key-file", key, name], 180)
+    except Exception:  # noqa: BLE001
+        return "fail"
+    after = cert_days_left(crt)
+    return "ok" if r.returncode == 0 and after is not None and after > (days or 0) else "fail"
+
+
 DELEGATE_TASK = "ClaudeServicesRemoteStart"
 
 
@@ -910,6 +1333,10 @@ def main(argv=None):
         stop_all(cfg, only=args.only)
         if args.restart and (args.only is None or args.only == "voice"):
             wait_until_down(["voice"])  # port release after TerminateProcess is not instant
+    if args.start and args.only is None and renew_cert() == "ok":
+        for svc in ("voice", "bridge"):          # both read the certificate only at start
+            stop_all(cfg, only=svc)
+        wait_until_down(["voice"])
     if args.start or args.restart:
         outcomes = start_all(cfg, only=args.only)
         spawned = [n for n, o in outcomes.items() if o == "spawned"]

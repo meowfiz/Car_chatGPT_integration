@@ -30,6 +30,15 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -S \"$CLAUDE_PROJECT_DIR/monitor/straznik_regul.py\" --hook prompt || python3 -S \"$CLAUDE_PROJECT_DIR/monitor/straznik_regul.py\" --hook prompt",
+            "timeout": 3
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -51,6 +60,15 @@
             "type": "command",
             "command": "python \"$CLAUDE_PROJECT_DIR/monitor/heartbeat.py\" --event stop || python3 \"$CLAUDE_PROJECT_DIR/monitor/heartbeat.py\" --event stop",
             "timeout": 5
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python -S \"$CLAUDE_PROJECT_DIR/monitor/straznik_regul.py\" --hook stop || python3 -S \"$CLAUDE_PROJECT_DIR/monitor/straznik_regul.py\" --hook stop",
+            "timeout": 3
           }
         ]
       }

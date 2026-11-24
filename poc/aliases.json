@@ -282,6 +282,44 @@
     "spoiwo": [
       "spoiwo",
       "projekt spoiwo"
+    ],
+    "publikacja---lekki-glos-pl": [
+      "lekki",
+      "glos",
+      "publikacja lekki",
+      "lekki glos",
+      "glos pl",
+      "publikacja lekki glos pl",
+      "publikacjalekkiglospl",
+      "projekt publikacja lekki glos pl"
+    ],
+    "publikacja---petla-profesor-student": [
+      "petla",
+      "profesor",
+      "student",
+      "publikacja petla",
+      "petla profesor",
+      "profesor student",
+      "publikacja petla profesor student",
+      "publikacjapetlaprofesorstudent",
+      "projekt publikacja petla profesor student"
+    ],
+    "publikacja---zapis-mocny-odczyt-lokalny": [
+      "zapis",
+      "mocny",
+      "odczyt",
+      "lokalny",
+      "publikacja zapis",
+      "zapis mocny",
+      "mocny odczyt",
+      "odczyt lokalny",
+      "publikacja zapis mocny odczyt lokalny",
+      "publikacjazapismocnyodczytlokalny",
+      "projekt publikacja zapis mocny odczyt lokalny"
+    ],
+    "msr2027": [
+      "msr2027",
+      "projekt msr2027"
     ]
   }
 }
