@@ -1,6 +1,6 @@
 # ZASADY PRACY — wspólne dla wszystkich projektów
 
-Wersja 1.43 (2026-11-23). Jeden plik, wrzucany do każdego repozytorium. Claude czyta go przez
+Wersja 1.44 (2026-11-27). Jeden plik, wrzucany do każdego repozytorium. Claude czyta go przez
 `@ZASADY_PRACY.md` w `CLAUDE.md`. Projekt zbiorczy (integrujący widok na wszystkie repozytoria)
 polega na **sekcji 9** — stałych ścieżkach i nazwach, po których da się czytać każde repo tak samo.
 
@@ -440,6 +440,21 @@ nie zwis — restart niczego by nie naprawił. Rozszerza 5.2 (mierz, nie oceniaj
 nie przymiotniki) na **fazę diagnozy**, zanim cokolwiek się zmieni. Polecenie użytkownika
 2026-10-25: „nigdy nie zgaduj".
 
+**5.16 Recenzja modelami: jeden artefakt zbiorczy, zakładka na publikację, zawsze.** Każda recenzja dokumentu narzędziem
+`recenzja` (skill `recenzja`, kod w `project_integration/tools/`) kończy się odświeżeniem **jednego** artefaktu zbiorczego:
+strona z zakładką na każdą publikację (rekomendacje modeli, oceny kryteriów, klastry uwag zamknięte/nowe/otwarte, trend
+między rundami). Narzędzie samo dopisuje dokument do rejestru (`project_integration/project_files/run_files/recenzja_rejestr.json`,
+adres artefaktu w polu `artefakt`) i buduje stronę (`.../recenzja_zbiorczo/recenzje.html`); Claude publikuje ją pod
+adresem z rejestru, bez prośby, i podaje link z wynikiem. **Nie tworzy się osobnych artefaktów per dokument.** Zakładka
+mówi, czego dotyczy: tytuł z samego dokumentu, nazwa dokumentu, projekt i `opis` (praca, dokąd idzie, termin) z pliku
+`<baza>/notatki_podsumowania.json` zapisanego przy pierwszej rundzie nowego dokumentu. Oceny są opiniami modeli
+(5.14, 5.9): żadna uwaga nie trafia do dokumentu bez sprawdzenia u źródła, a wspólny rodzaj modelu z autorem tekstu
+jest ujawniany. Zmiana statusu pracy (złożona, wysłana, przyjęta, odrzucona) idzie do artefaktu z kalendarzem publikacji
+(adres w `~/.claude/CLAUDE.md`).
+*Dlaczego:* decyzja użytkownika 2026-11-27 — osobne artefakty per praca i per runda mnożyły linki, a strona bez tytułu
+pracy zostawiała czytelnika bez wiedzy, o której publikacji mowa; jeden artefakt z zakładkami daje jedno miejsce na stan
+wszystkich prac.
+
 ---
 
 ## 6. Prowenienecja
@@ -641,7 +656,7 @@ wgranie do wszystkich repo.
 
 | wersja | data | co i skąd |
 |---|---|---|
+| 1.44 | 2026-11-27 | Reguła 5.16: recenzja modelami kończy się odświeżeniem jednego artefaktu zbiorczego z zakładką na publikację (rejestr, tytuł i opis w zakładce, zakaz osobnych artefaktów per dokument); powiązanie z artefaktem kalendarza publikacji. *Skąd:* decyzja użytkownika 2026-11-27 (projekt Palet: łączenie recenzji w jedno narzędzie z artefaktem). |
 | 1.43 | 2026-11-23 | Reguła 7.12 zaostrzona: Opus planuje i decyduje, całą resztę wykonują workery Sonnet (nie tylko zadania atomowe); wynik sprawdza zlecający. *Skąd:* decyzja użytkownika 2026-11-23. |
-| 1.42 | 2026-11-14 | Reguła 7.12: Opus planuje i decyduje, zadania atomowe idą do podagentów Sonnet (wynik sprawdza Claude); tryb profesor–student bez zmian. *Skąd:* decyzja użytkownika 2026-11-14. |
 
-Starsze wpisy (pełna tabela 1.0–1.42): `project_integration/notes/ZASADY_HISTORIA.md`.
+Starsze wpisy (pełna tabela 1.0–1.43): `project_integration/notes/ZASADY_HISTORIA.md`.
